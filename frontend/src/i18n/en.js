@@ -203,5 +203,16 @@ export default {
     clear: 'Clear filters',
     sampleNote: 'Sample courses. Real courses will be added by the center.',
   },
+    detail: {
+    back: 'All courses',
+    outcomes: 'What you will learn',
+    curriculum: 'Curriculum',
+    info: 'Course information',
+    teacher: 'Teacher', format: 'Format', duration: 'Duration', schedule: 'Schedule',
+    enroll: 'Enroll in this course',
+    enrollNote: 'You need an ESCHOOL account to enroll.',
+    notFoundTitle: 'Course not found',
+    notFoundText: 'This course does not exist or was removed.',
+  },
   footer: { rights: "All rights reserved." },
 };

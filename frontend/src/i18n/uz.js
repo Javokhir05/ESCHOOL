@@ -101,5 +101,16 @@ export default {
     clear: 'Filtrlarni tozalash',
     sampleNote: 'Namuna kurslar. Haqiqiy kurslarni markaz qoʻshadi.',
   },
+    detail: {
+    back: 'Barcha kurslar',
+    outcomes: 'Nimalarni oʻrganasiz',
+    curriculum: 'Kurs dasturi',
+    info: 'Kurs haqida maʼlumot',
+    teacher: 'Oʻqituvchi', format: 'Format', duration: 'Davomiyligi', schedule: 'Dars jadvali',
+    enroll: 'Kursga yozilish',
+    enrollNote: 'Yozilish uchun ESCHOOL hisobi kerak.',
+    notFoundTitle: 'Kurs topilmadi',
+    notFoundText: 'Bunday kurs mavjud emas yoki oʻchirilgan.',
+  },
   footer: { rights: 'Barcha huquqlar himoyalangan.' },
 };

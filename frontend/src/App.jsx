@@ -8,6 +8,7 @@ import TeacherOverview from './pages/teacher/Overview';
 import AdminOverview from './pages/admin/Overview';
 import Placeholder from './pages/Placeholder';
 import Courses from './pages/public/Courses';
+import CourseDetail from './pages/public/CourseDetail';
 
 export default function App() {
   return (
@@ -16,7 +17,7 @@ export default function App() {
         <Route index element={<Home />} />
         <Route path="design-system" element={<DesignSystem />} />
         <Route path="courses" element={<Courses />} />
-        <Route path="courses/:id" element={<Placeholder />} />
+        <Route path="courses/:id" element={<CourseDetail />} />
         <Route path="teachers" element={<Placeholder />} />
         <Route path="about" element={<Placeholder />} />
         <Route path="contact" element={<Placeholder />} />
