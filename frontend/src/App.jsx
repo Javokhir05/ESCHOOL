@@ -9,6 +9,8 @@ import AdminOverview from './pages/admin/Overview';
 import Placeholder from './pages/Placeholder';
 import Courses from './pages/public/Courses';
 import CourseDetail from './pages/public/CourseDetail';
+import Register from './pages/public/Register';
+import Login from './pages/public/Login';
 
 export default function App() {
   return (
@@ -21,8 +23,8 @@ export default function App() {
         <Route path="teachers" element={<Placeholder />} />
         <Route path="about" element={<Placeholder />} />
         <Route path="contact" element={<Placeholder />} />
-        <Route path="login" element={<Placeholder />} />
-        <Route path="register" element={<Placeholder />} />
+        <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
       </Route>
 
       {/* Login guards are added together with authentication later. */}
