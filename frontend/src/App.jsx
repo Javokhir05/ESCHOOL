@@ -1,26 +1,42 @@
-import { LANGUAGES, useI18n } from './i18n';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import PublicLayout from './layouts/PublicLayout';
+import DashboardLayout from './layouts/DashboardLayout';
+import Home from './pages/public/Home';
+import DesignSystem from './pages/public/DesignSystem';
+import StudentOverview from './pages/student/Overview';
+import TeacherOverview from './pages/teacher/Overview';
+import AdminOverview from './pages/admin/Overview';
+import Placeholder from './pages/Placeholder';
 
 export default function App() {
-  const { lang, setLang, t } = useI18n();
   return (
-    <div className="mx-auto max-w-xl p-8">
-      <h1 className="text-3xl">{t('brand')}</h1>
-      <p className="mt-2 text-ink-muted">{t('home.heroTitle')}</p>
-      <p className="mt-1 text-sm text-ink-muted">{t('nav.teachers')} · {t('dash.achievements')}</p>
+    <Routes>
+      <Route element={<PublicLayout />}>
+        <Route index element={<Home />} />
+        <Route path="design-system" element={<DesignSystem />} />
+        <Route path="courses" element={<Placeholder />} />
+        <Route path="teachers" element={<Placeholder />} />
+        <Route path="about" element={<Placeholder />} />
+        <Route path="contact" element={<Placeholder />} />
+        <Route path="login" element={<Placeholder />} />
+        <Route path="register" element={<Placeholder />} />
+      </Route>
 
-      <div className="mt-6 flex gap-2">
-        {LANGUAGES.map(({ code, short }) => (
-          <button
-            key={code}
-            onClick={() => setLang(code)}
-            className={`rounded-control px-4 py-2 text-sm font-bold ${
-              lang === code ? 'bg-brand text-white' : 'border border-line bg-white text-navy'
-            }`}
-          >
-            {short}
-          </button>
-        ))}
-      </div>
-    </div>
+      {/* Login guards are added together with authentication later. */}
+      <Route path="student" element={<DashboardLayout role="student" />}>
+        <Route index element={<StudentOverview />} />
+        <Route path="*" element={<Placeholder />} />
+      </Route>
+      <Route path="teacher" element={<DashboardLayout role="teacher" />}>
+        <Route index element={<TeacherOverview />} />
+        <Route path="*" element={<Placeholder />} />
+      </Route>
+      <Route path="admin" element={<DashboardLayout role="admin" />}>
+        <Route index element={<AdminOverview />} />
+        <Route path="*" element={<Placeholder />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
