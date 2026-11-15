@@ -1,11 +1,13 @@
 import { Button, Card, ProgressBar, StatCard } from '../../components/ui';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../auth/AuthContext';
 
 export default function StudentOverview() {
   const { t } = useI18n();
+  const { user } = useAuth();
   return (
     <div className="mx-auto max-w-5xl">
-      <h1 className="text-2xl">{t('student.greeting')}</h1>
+      <h1 className="text-2xl">{t('student.greetingName').replace('{name}', user.fullName.split(' ')[0])}</h1>
       <p className="mb-6 mt-1 text-ink-muted">{t('student.sub')}</p>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

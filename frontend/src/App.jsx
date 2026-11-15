@@ -12,6 +12,7 @@ import StudentOverview from './pages/student/Overview';
 import TeacherOverview from './pages/teacher/Overview';
 import AdminOverview from './pages/admin/Overview';
 import Placeholder from './pages/Placeholder';
+import StudentProfile from './pages/student/Profile';
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
       <Route element={<ProtectedRoute roles={['STUDENT']} />}>
         <Route path="student" element={<DashboardLayout role="student" />}>
           <Route index element={<StudentOverview />} />
+          <Route path="profile" element={<StudentProfile />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

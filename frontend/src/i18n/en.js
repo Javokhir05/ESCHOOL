@@ -36,6 +36,7 @@ export default {
   },
   student: {
     greeting: "Good morning, student!",
+    greetingName: 'Good morning, {name}!',
     sub: "Here is your learning overview.",
     activeCourses: "Active courses",
     lessonsDone: "Lessons completed",
@@ -259,6 +260,19 @@ export default {
       experience: 'Enter a whole number from 0 to 60.',
       taken: 'This email is already registered.',
     },
+  },
+    profile: {
+    title: 'My profile',
+    memberSince: 'Member since',
+    contact: 'Contact',
+    currentCourses: 'Current courses',
+    noCourses: 'You are not enrolled in any course yet.',
+    browse: 'Browse courses',
+    goalTitle: 'Academic goal',
+    achievementsTitle: 'Achievements',
+    noAchievements: 'Verified achievements will appear here.',
+    progressTitle: 'Progress',
+    noProgress: 'Your lessons and assignments will be tracked here once you start a course.',
   },
   footer: { rights: "All rights reserved." },
 };

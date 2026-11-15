@@ -13,7 +13,7 @@ export default {
     student: 'Oʻquvchi', teacher: 'Oʻqituvchi', admin: 'Administrator',
   },
   student: {
-    greeting: 'Xayrli tong, oʻquvchi!', sub: 'Mana sizning oʻquv koʻrsatkichlaringiz.',
+    greeting: 'Xayrli tong, oʻquvchi!', greetingName: 'Xayrli tong, {name}!', sub: 'Mana sizning oʻquv koʻrsatkichlaringiz.',
     activeCourses: 'Faol kurslar', lessonsDone: 'Tugatilgan darslar', pendingTasks: 'Kutilayotgan topshiriqlar', achievements: 'Yutuqlar',
     progress: 'Mening oʻquv jarayonim', upcoming: 'Yaqin darslar', continueTitle: 'Oʻqishni davom ettiring',
     continueText: 'Oxirgi darsingizni davom ettiring yoki keyingi topshiriqni oching.', continueBtn: 'Davom etish',
@@ -157,6 +157,19 @@ export default {
       experience: '0 dan 60 gacha butun son kiriting.',
       taken: 'Bu elektron pochta allaqachon roʻyxatdan oʻtgan.',
     },
+  },
+    profile: {
+    title: 'Mening profilim',
+    memberSince: 'Roʻyxatdan oʻtgan sana',
+    contact: 'Aloqa maʼlumotlari',
+    currentCourses: 'Joriy kurslar',
+    noCourses: 'Siz hali hech qanday kursga yozilmagansiz.',
+    browse: 'Kurslarni koʻrish',
+    goalTitle: 'Oʻquv maqsadi',
+    achievementsTitle: 'Yutuqlar',
+    noAchievements: 'Tasdiqlangan yutuqlar shu yerda paydo boʻladi.',
+    progressTitle: 'Jarayon',
+    noProgress: 'Kursni boshlaganingizdan soʻng darslar va topshiriqlaringiz shu yerda kuzatiladi.',
   },
   footer: { rights: 'Barcha huquqlar himoyalangan.' },
 };
