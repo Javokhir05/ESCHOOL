@@ -1,16 +1,17 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
+import ProtectedRoute from './auth/ProtectedRoute';
 import Home from './pages/public/Home';
 import DesignSystem from './pages/public/DesignSystem';
-import StudentOverview from './pages/student/Overview';
-import TeacherOverview from './pages/teacher/Overview';
-import AdminOverview from './pages/admin/Overview';
-import Placeholder from './pages/Placeholder';
 import Courses from './pages/public/Courses';
 import CourseDetail from './pages/public/CourseDetail';
 import Register from './pages/public/Register';
 import Login from './pages/public/Login';
+import StudentOverview from './pages/student/Overview';
+import TeacherOverview from './pages/teacher/Overview';
+import AdminOverview from './pages/admin/Overview';
+import Placeholder from './pages/Placeholder';
 
 export default function App() {
   return (
@@ -27,18 +28,24 @@ export default function App() {
         <Route path="register" element={<Register />} />
       </Route>
 
-      {/* Login guards are added together with authentication later. */}
-      <Route path="student" element={<DashboardLayout role="student" />}>
-        <Route index element={<StudentOverview />} />
-        <Route path="*" element={<Placeholder />} />
+      {/* Each dashboard only opens for its own role */}
+      <Route element={<ProtectedRoute roles={['STUDENT']} />}>
+        <Route path="student" element={<DashboardLayout role="student" />}>
+          <Route index element={<StudentOverview />} />
+          <Route path="*" element={<Placeholder />} />
+        </Route>
       </Route>
-      <Route path="teacher" element={<DashboardLayout role="teacher" />}>
-        <Route index element={<TeacherOverview />} />
-        <Route path="*" element={<Placeholder />} />
+      <Route element={<ProtectedRoute roles={['TEACHER']} />}>
+        <Route path="teacher" element={<DashboardLayout role="teacher" />}>
+          <Route index element={<TeacherOverview />} />
+          <Route path="*" element={<Placeholder />} />
+        </Route>
       </Route>
-      <Route path="admin" element={<DashboardLayout role="admin" />}>
-        <Route index element={<AdminOverview />} />
-        <Route path="*" element={<Placeholder />} />
+      <Route element={<ProtectedRoute roles={['ADMIN']} />}>
+        <Route path="admin" element={<DashboardLayout role="admin" />}>
+          <Route index element={<AdminOverview />} />
+          <Route path="*" element={<Placeholder />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

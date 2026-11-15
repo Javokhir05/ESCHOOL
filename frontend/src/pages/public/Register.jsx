@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import RoleToggle from '../../components/RoleToggle';
 import { Button, Card, Input, Select } from '../../components/ui';
+import { api, ApiError } from '../../api';
+import { apiErrorText } from '../../auth/errorMessage';
 import { useI18n } from '../../i18n';
 
 const initial = {
@@ -33,6 +35,8 @@ export default function Register() {
   const [role, setRole] = useState('student');
   const [v, setV] = useState(initial);
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
   const change = (key) => (e) => {
@@ -44,13 +48,27 @@ export default function Register() {
   const switchRole = (next) => {
     setRole(next);
     setErrors({});
+    setFormError('');
   };
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
     const found = validate(v, role);
     setErrors(found);
-    if (Object.keys(found).length === 0) setDone(true);
+    if (Object.keys(found).length > 0) return;
+
+    setSubmitting(true);
+    try {
+      await api('/auth/register', { method: 'POST', body: { role, ...v } });
+      setDone(true);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'VALIDATION' && error.fields) setErrors(error.fields);
+      else if (error instanceof ApiError && error.code === 'EMAIL_TAKEN') setErrors({ email: 'taken' });
+      else setFormError(apiErrorText(t, error));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const roleOptions = [
@@ -76,7 +94,9 @@ export default function Register() {
         <Card>
           <CheckCircle2 size={32} className="text-teal-dark" aria-hidden="true" />
           <h1 className="mt-3 text-2xl">{t('auth.doneTitle')}</h1>
-          <p className="mt-2 text-ink-muted">{t('auth.doneText')}</p>
+          <p className="mt-2 text-ink-muted">
+            {role === 'teacher' ? t('auth.createdTeacher') : t('auth.createdStudent')}
+          </p>
           <Button as={Link} to="/login" className="mt-6">{t('auth.loginLink')}</Button>
         </Card>
       </div>
@@ -124,7 +144,13 @@ export default function Register() {
             value={v.confirm} onChange={change('confirm')} error={err('confirm')}
           />
 
-          <Button type="submit" size="lg" className="w-full">{t('auth.create')}</Button>
+          {formError && (
+            <p role="alert" className="rounded-control bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>
+          )}
+
+          <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+            {submitting ? t('auth.submitting') : t('auth.create')}
+          </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-ink-muted">

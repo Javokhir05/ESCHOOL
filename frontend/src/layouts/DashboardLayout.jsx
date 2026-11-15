@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, X } from 'lucide-react';
 import Logo from '../components/Logo';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { roleNav } from '../config/navigation';
+import { useAuth } from '../auth/AuthContext';
 import { useI18n } from '../i18n';
 
 const itemClass = ({ isActive }) =>
@@ -14,8 +15,15 @@ const itemClass = ({ isActive }) =>
 /** One layout, three experiences: the sidebar comes from the `role` prop. */
 export default function DashboardLayout({ role }) {
   const { t } = useI18n();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const items = roleNav[role];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   const sidebar = (
     <div className="flex h-full flex-col bg-navy p-4">
@@ -33,10 +41,10 @@ export default function DashboardLayout({ role }) {
           </NavLink>
         ))}
       </nav>
-      <NavLink to="/login" className={itemClass}>
+      <button type="button" onClick={handleLogout} className={`${itemClass({ isActive: false })} w-full`}>
         <LogOut size={18} aria-hidden="true" />
         {t('dash.logout')}
-      </NavLink>
+      </button>
     </div>
   );
 
@@ -54,7 +62,7 @@ export default function DashboardLayout({ role }) {
       )}
 
       <div className="flex min-w-0 flex-col">
-        <header className="flex h-16 items-center justify-between border-b border-line bg-white px-4 lg:justify-end">
+        <header className="flex h-16 items-center justify-between border-b border-line bg-white px-4">
           <button
             type="button"
             className="rounded-control p-2 text-navy lg:hidden"
@@ -63,7 +71,10 @@ export default function DashboardLayout({ role }) {
           >
             <Menu size={22} />
           </button>
-          <LanguageSwitcher />
+          <div className="ml-auto flex items-center gap-4">
+            <span className="hidden text-sm font-semibold text-navy sm:block">{user?.fullName}</span>
+            <LanguageSwitcher />
+          </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8"><Outlet /></main>
       </div>
