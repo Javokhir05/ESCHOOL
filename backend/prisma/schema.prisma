@@ -61,4 +61,49 @@ model TeacherProfile {
   subject         Category
   experienceYears Int
   bio             String?
+  courses         Course[]
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  SCHOOL
+}
+
+enum CourseFormat {
+  ONLINE
+  OFFLINE
+  BOTH
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Course {
+  id       String       @id @default(cuid())
+  slug     String       @unique
+  category Category
+  level    CourseLevel
+  format   CourseFormat
+  status   CourseStatus @default(DRAFT)
+
+  titleUz    String
+  titleEn    String
+  summaryUz  String
+  summaryEn  String
+  durationUz String
+  durationEn String
+  scheduleUz String
+  scheduleEn String
+  outcomes   Json // [{ uz, en }, ...]
+  curriculum Json // [{ uz, en }, ...]
+
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

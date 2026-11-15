@@ -1,8 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, Check, Clock, MonitorSmartphone, UserRound } from 'lucide-react';
 import { Badge, Button, Card } from '../../components/ui';
-import { courses, teachers } from '../../data/courses';
-import { courseDetails } from '../../data/courseDetails';
+import { api, ApiError } from '../../api';
 import { useI18n } from '../../i18n';
 
 const tones = { ielts: 'blue', cefr: 'teal', academic: 'violet' };
@@ -22,20 +22,35 @@ function InfoRow({ icon: Icon, label, value }) {
 export default function CourseDetail() {
   const { id } = useParams();
   const { t, lang } = useI18n();
-  const course = courses.find((c) => c.id === id);
-  const details = courseDetails[id];
+  const [state, setState] = useState({ status: 'loading', course: null });
 
-  if (!course || !details) {
+  useEffect(() => {
+    let cancelled = false;
+    setState({ status: 'loading', course: null });
+    api(`/courses/${id}`)
+      .then((d) => !cancelled && setState({ status: 'ready', course: d.course }))
+      .catch((e) => {
+        if (cancelled) return;
+        setState({ status: e instanceof ApiError && e.status === 404 ? 'notfound' : 'error', course: null });
+      });
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (state.status === 'loading') {
+    return <p className="mx-auto max-w-6xl px-4 py-16 text-ink-muted" role="status">{t('detail.loading')}</p>;
+  }
+
+  if (state.status !== 'ready') {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <h1 className="text-2xl">{t('detail.notFoundTitle')}</h1>
-        <p className="mt-2 text-ink-muted">{t('detail.notFoundText')}</p>
+        <h1 className="text-2xl">{t(state.status === 'notfound' ? 'detail.notFoundTitle' : 'detail.loadError')}</h1>
+        {state.status === 'notfound' && <p className="mt-2 text-ink-muted">{t('detail.notFoundText')}</p>}
         <Button as={Link} to="/courses" variant="secondary" className="mt-6">{t('detail.back')}</Button>
       </div>
     );
   }
 
-  const teacher = teachers.find((x) => x.id === course.teacherId);
+  const course = state.course;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -56,7 +71,7 @@ export default function CourseDetail() {
           <section>
             <h2 className="text-xl">{t('detail.outcomes')}</h2>
             <ul className="mt-4 space-y-3">
-              {details.outcomes.map((o) => (
+              {course.outcomes.map((o) => (
                 <li key={o.en} className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-soft text-teal-dark">
                     <Check size={13} aria-hidden="true" />
@@ -70,7 +85,7 @@ export default function CourseDetail() {
           <section>
             <h2 className="text-xl">{t('detail.curriculum')}</h2>
             <ol className="mt-4 space-y-3">
-              {details.curriculum.map((m, i) => (
+              {course.curriculum.map((m, i) => (
                 <li key={m.en} className="flex items-center gap-4 rounded-card border border-line bg-white px-4 py-3 shadow-card">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-navy text-sm font-bold text-white">
                     {i + 1}
@@ -85,10 +100,10 @@ export default function CourseDetail() {
         <aside className="self-start lg:sticky lg:top-24">
           <Card title={t('detail.info')}>
             <div className="space-y-4">
-              <InfoRow icon={UserRound} label={t('detail.teacher')} value={teacher?.name[lang]} />
+              <InfoRow icon={UserRound} label={t('detail.teacher')} value={course.teacher.fullName} />
               <InfoRow icon={MonitorSmartphone} label={t('detail.format')} value={t(`catalog.formats.${course.format}`)} />
-              <InfoRow icon={Clock} label={t('detail.duration')} value={details.duration[lang]} />
-              <InfoRow icon={CalendarDays} label={t('detail.schedule')} value={details.schedule[lang]} />
+              <InfoRow icon={Clock} label={t('detail.duration')} value={course.duration[lang]} />
+              <InfoRow icon={CalendarDays} label={t('detail.schedule')} value={course.schedule[lang]} />
             </div>
             <Button as={Link} to="/register" size="lg" className="mt-6 w-full">{t('detail.enroll')}</Button>
             <p className="mt-3 text-center text-xs text-ink-muted">{t('detail.enrollNote')}</p>

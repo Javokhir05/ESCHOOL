@@ -203,6 +203,9 @@ export default {
     emptyText: 'Try a different word or clear the filters.',
     clear: 'Clear filters',
     sampleNote: 'Sample courses. Real courses will be added by the center.',
+    loading: 'Loading courses...',
+    loadError: 'Could not load the courses.',
+    retry: 'Try again',
   },
     detail: {
     back: 'All courses',
@@ -214,6 +217,8 @@ export default {
     enrollNote: 'You need an ESCHOOL account to enroll.',
     notFoundTitle: 'Course not found',
     notFoundText: 'This course does not exist or was removed.',
+    loading: 'Loading course...',
+    loadError: 'Could not load this course.',
   },
     auth: {
     registerTitle: 'Create your ESCHOOL account',

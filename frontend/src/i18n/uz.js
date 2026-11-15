@@ -100,6 +100,9 @@ export default {
     emptyText: 'Boshqa soʻz kiriting yoki filtrlarni tozalang.',
     clear: 'Filtrlarni tozalash',
     sampleNote: 'Namuna kurslar. Haqiqiy kurslarni markaz qoʻshadi.',
+    loading: 'Kurslar yuklanmoqda...',
+    loadError: 'Kurslarni yuklab boʻlmadi.',
+    retry: 'Qayta urinish',
   },
     detail: {
     back: 'Barcha kurslar',
@@ -111,6 +114,8 @@ export default {
     enrollNote: 'Yozilish uchun ESCHOOL hisobi kerak.',
     notFoundTitle: 'Kurs topilmadi',
     notFoundText: 'Bunday kurs mavjud emas yoki oʻchirilgan.',
+    loading: 'Kurs yuklanmoqda...',
+    loadError: 'Bu kursni yuklab boʻlmadi.',
   },
     auth: {
     registerTitle: 'ESCHOOL hisobini yarating',

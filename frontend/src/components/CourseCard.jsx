@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Calculator, GraduationCap, Languages } from 'lucide-react';
 import { Badge, Button } from './ui';
-import { teachers } from '../data/courses';
 import { useI18n } from '../i18n';
 
 const categoryStyle = {
@@ -13,7 +12,6 @@ const categoryStyle = {
 export default function CourseCard({ course }) {
   const { t, lang } = useI18n();
   const { icon: Icon, box, tone } = categoryStyle[course.category];
-  const teacher = teachers.find((x) => x.id === course.teacherId);
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-card border border-line bg-white shadow-card">
@@ -30,7 +28,7 @@ export default function CourseCard({ course }) {
         <h3 className="text-lg">{course.title[lang]}</h3>
         <p className="mt-1.5 text-sm text-ink-muted">{course.summary[lang]}</p>
         <p className="mt-3 text-sm text-ink-muted">
-          {teacher?.name[lang]} · {t(`catalog.formats.${course.format}`)}
+          {course.teacher.fullName} · {t(`catalog.formats.${course.format}`)}
         </p>
         <Button as={Link} to={`/courses/${course.id}`} size="sm" className="mt-5 self-start">
           {t('catalog.viewCourse')}
