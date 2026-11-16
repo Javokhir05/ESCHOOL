@@ -13,6 +13,8 @@ import TeacherOverview from './pages/teacher/Overview';
 import AdminOverview from './pages/admin/Overview';
 import Placeholder from './pages/Placeholder';
 import StudentProfile from './pages/student/Profile';
+import AdminTeachers from './pages/admin/Teachers';
+import AdminEnrollments from './pages/admin/Enrollments';
 
 export default function App() {
   return (
@@ -46,6 +48,8 @@ export default function App() {
       <Route element={<ProtectedRoute roles={['ADMIN']} />}>
         <Route path="admin" element={<DashboardLayout role="admin" />}>
           <Route index element={<AdminOverview />} />
+          <Route path="teachers" element={<AdminTeachers />} />
+          <Route path="enrollments" element={<AdminEnrollments />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

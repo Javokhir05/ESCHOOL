@@ -65,6 +65,26 @@ export default {
   admin: {
     title: "Administration",
     sub: "Platform overview, approvals and reports will appear here.",
+    stats: {
+      pendingTeachers: 'Teachers waiting for approval',
+      pendingEnrollments: 'Enrollment requests waiting',
+      students: 'Students',
+      teachers: 'Active teachers',
+      courses: 'Published courses',
+    },
+    reviewTeachers: 'Review teachers',
+    reviewEnrollments: 'Review requests',
+    teachersTitle: 'Teachers',
+    teachersSub: 'Approve new teacher accounts before they can log in.',
+    enrollmentsTitle: 'Enrollment requests',
+    enrollmentsSub: 'Approve or reject students who asked to join a course.',
+    show: 'Show', filterPending: 'Waiting', filterAll: 'All',
+    approve: 'Approve', reject: 'Reject', disable: 'Disable', enable: 'Enable',
+    noTeachers: 'No teachers yet.',
+    noPendingEnrollments: 'No requests are waiting. You are all caught up.',
+    noEnrollments: 'No enrollment requests yet.',
+    experience: '{n} years of experience',
+    userStatus: { ACTIVE: 'Active', PENDING: 'Waiting for approval', DISABLED: 'Disabled' },
   },
   home: {
     heroTitle: "Your journey to English fluency starts here.",
@@ -293,5 +313,6 @@ export default {
     loadError: 'Could not load your courses.',
     status: { PENDING: 'Waiting for approval', ACTIVE: 'Active', REJECTED: 'Not approved' },
   },
+  common: { loadError: 'Could not load this page.' },
   footer: { rights: "All rights reserved." },
 };
