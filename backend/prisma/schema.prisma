@@ -47,11 +47,12 @@ model User {
 }
 
 model StudentProfile {
-  id     String    @id @default(cuid())
-  userId String    @unique
-  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grade  Int
-  goal   Category? // empty means "not sure yet"
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grade       Int
+  goal        Category? // empty means "not sure yet"
+  enrollments Enrollment[]
 }
 
 model TeacherProfile {
@@ -101,9 +102,28 @@ model Course {
   outcomes   Json // [{ uz, en }, ...]
   curriculum Json // [{ uz, en }, ...]
 
-  teacherId String
-  teacher   TeacherProfile @relation(fields: [teacherId], references: [id])
+  teacherId   String
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
+  enrollments Enrollment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum EnrollmentStatus {
+  PENDING // the student asked, the center has not answered yet
+  ACTIVE
+  REJECTED
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  studentId String
+  student   StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status    EnrollmentStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+
+  @@unique([studentId, courseId]) // one request per student per course
 }

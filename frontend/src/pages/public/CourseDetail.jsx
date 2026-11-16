@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarDays, Check, Clock, MonitorSmartphone, UserRound } f
 import { Badge, Button, Card } from '../../components/ui';
 import { api, ApiError } from '../../api';
 import { useI18n } from '../../i18n';
+import EnrollButton from '../../components/EnrollButton';
 
 const tones = { ielts: 'blue', cefr: 'teal', academic: 'violet' };
 
@@ -105,8 +106,7 @@ export default function CourseDetail() {
               <InfoRow icon={Clock} label={t('detail.duration')} value={course.duration[lang]} />
               <InfoRow icon={CalendarDays} label={t('detail.schedule')} value={course.schedule[lang]} />
             </div>
-            <Button as={Link} to="/register" size="lg" className="mt-6 w-full">{t('detail.enroll')}</Button>
-            <p className="mt-3 text-center text-xs text-ink-muted">{t('detail.enrollNote')}</p>
+            <EnrollButton courseId={course.id} />
           </Card>
           <p className="mt-3 text-xs text-ink-muted">{t('catalog.sampleNote')}</p>
         </aside>

@@ -3,6 +3,7 @@ import { Award, BookOpen, Mail, Phone, Target, TrendingUp } from 'lucide-react';
 import { Badge, Button, Card } from '../../components/ui';
 import { useAuth } from '../../auth/AuthContext';
 import { useI18n } from '../../i18n';
+import MyCourses from '../../components/MyCourses';
 
 function initials(name = '') {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
@@ -62,11 +63,7 @@ export default function StudentProfile() {
       </Card>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <Card title={t('profile.currentCourses')}>
-          <Empty icon={BookOpen} text={t('profile.noCourses')}>
-            <Button as={Link} to="/courses" variant="secondary" size="sm">{t('profile.browse')}</Button>
-          </Empty>
-        </Card>
+        <MyCourses />
 
         <Card title={t('profile.goalTitle')}>
           <div className="flex items-center gap-3">
