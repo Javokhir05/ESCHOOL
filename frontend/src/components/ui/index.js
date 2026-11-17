@@ -5,3 +5,4 @@ export { default as Input } from './Input';
 export { default as ProgressBar } from './ProgressBar';
 export { default as StatCard } from './StatCard';
 export {default as Select} from './Select'
+export { default as Textarea } from './Textarea';

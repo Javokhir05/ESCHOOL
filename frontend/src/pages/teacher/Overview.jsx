@@ -1,39 +1,56 @@
+import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { Card, StatCard } from '../../components/ui';
+import { Badge, Button, Card, StatCard } from '../../components/ui';
+import DataState from '../../components/DataState';
+import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
 
 export default function TeacherOverview() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const stats = useApi('/teacher/stats');
+  const courses = useApi('/teacher/courses');
+
   return (
     <div className="mx-auto max-w-5xl">
       <h1 className="text-2xl">{t('teacher.title')}</h1>
       <p className="mb-6 mt-1 text-ink-muted">{t('teacher.sub')}</p>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard value="86" label={t('teacher.totalStudents')} tone="blue" />
-        <StatCard value="4" label={t('teacher.activeCourses')} tone="teal" />
-        <StatCard value="9" label={t('teacher.toReview')} tone="amber" />
-        <StatCard value="3" label={t('teacher.classes')} tone="violet" />
-      </div>
+      <DataState loading={stats.loading} error={stats.error} onRetry={stats.reload}>
+        {stats.data && (
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatCard value={stats.data.stats.students} label={t('teacher.totalStudents')} tone="blue" />
+            <StatCard value={stats.data.stats.published} label={t('teacher.activeCourses')} tone="teal" />
+            <StatCard value={stats.data.stats.drafts} label={t('teacher.drafts')} tone="violet" />
+            <StatCard value={stats.data.stats.waiting} label={t('teacher.waiting')} tone="amber" />
+          </div>
+        )}
+      </DataState>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <Card title={t('teacher.recent')}>
-          <ul className="space-y-3 text-sm">
-            <li className="flex justify-between"><span>IELTS Writing Task 2</span><span className="text-ink-muted">4 new</span></li>
-            <li className="flex justify-between"><span>CEFR B2 Grammar Quiz</span><span className="text-ink-muted">3 new</span></li>
-            <li className="flex justify-between"><span>Reading practice</span><span className="text-ink-muted">2 new</span></li>
-          </ul>
-        </Card>
-        <Card title={t('teacher.quick')}>
-          <ul className="space-y-2 text-sm font-semibold text-brand">
-            {['addCourse', 'addMaterial', 'addAssignment'].map((k) => (
-              <li key={k}>
-                <button type="button" className="flex items-center gap-2 hover:underline">
-                  <Plus size={16} />{t(`teacher.${k}`)}
-                </button>
-              </li>
+        <Card title={t('teacher.myCourses')}>
+          <DataState loading={courses.loading} error={courses.error} onRetry={courses.reload}>
+            {courses.data && (courses.data.courses.length === 0 ? (
+              <p className="text-sm text-ink-muted">{t('tc.noCourses')}</p>
+            ) : (
+              <ul className="space-y-3">
+                {courses.data.courses.slice(0, 5).map((c) => (
+                  <li key={c.id} className="flex items-center justify-between gap-3">
+                    <Link to={`/teacher/courses/${c.id}/edit`} className="text-sm font-semibold text-navy hover:underline">
+                      {c.title[lang]}
+                    </Link>
+                    <Badge tone={c.status === 'PUBLISHED' ? 'teal' : 'neutral'}>{t(`tc.status.${c.status}`)}</Badge>
+                  </li>
+                ))}
+              </ul>
             ))}
-          </ul>
+          </DataState>
+        </Card>
+
+        <Card title={t('teacher.quick')}>
+          <Button as={Link} to="/teacher/courses/new" variant="ghost" size="sm" className="-ml-3">
+            <Plus size={16} aria-hidden="true" />
+            {t('teacher.addCourse')}
+          </Button>
         </Card>
       </div>
     </div>

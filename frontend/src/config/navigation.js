@@ -26,7 +26,7 @@ export const roleNav = {
   ],
   teacher: [
     { to: '/teacher', label: 'dash.overview', icon: LayoutDashboard, end: true },
-    { to: '/teacher/courses', label: 'dash.myCourses', icon: BookOpen },
+    { to: '/teacher/courses', label: 'dash.myCourses', icon: BookOpen, end: true },
     { to: '/teacher/courses/new', label: 'dash.createCourse', icon: PlusCircle },
     { to: '/teacher/lessons', label: 'dash.lessons', icon: Layers },
     { to: '/teacher/students', label: 'dash.students', icon: Users },

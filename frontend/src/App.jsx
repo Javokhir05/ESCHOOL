@@ -15,6 +15,9 @@ import Placeholder from './pages/Placeholder';
 import StudentProfile from './pages/student/Profile';
 import AdminTeachers from './pages/admin/Teachers';
 import AdminEnrollments from './pages/admin/Enrollments';
+import TeacherCourses from './pages/teacher/Courses';
+import CourseForm from './pages/teacher/CourseForm';
+import CourseStudents from './pages/teacher/CourseStudents';
 
 export default function App() {
   return (
@@ -42,6 +45,10 @@ export default function App() {
       <Route element={<ProtectedRoute roles={['TEACHER']} />}>
         <Route path="teacher" element={<DashboardLayout role="teacher" />}>
           <Route index element={<TeacherOverview />} />
+          <Route path="courses" element={<TeacherCourses />} />
+          <Route path="courses/new" element={<CourseForm />} />
+          <Route path="courses/:id/edit" element={<CourseForm />} />
+          <Route path="courses/:id/students" element={<CourseStudents />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>
