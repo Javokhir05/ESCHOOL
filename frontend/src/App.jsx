@@ -18,6 +18,9 @@ import AdminEnrollments from './pages/admin/Enrollments';
 import TeacherCourses from './pages/teacher/Courses';
 import CourseForm from './pages/teacher/CourseForm';
 import CourseStudents from './pages/teacher/CourseStudents';
+import LessonsIndex from './pages/teacher/LessonsIndex';
+import Lessons from './pages/teacher/Lessons';
+import LessonForm from './pages/teacher/LessonForm';
 
 export default function App() {
   return (
@@ -49,6 +52,10 @@ export default function App() {
           <Route path="courses/new" element={<CourseForm />} />
           <Route path="courses/:id/edit" element={<CourseForm />} />
           <Route path="courses/:id/students" element={<CourseStudents />} />
+          <Route path="lessons" element={<LessonsIndex />} />
+          <Route path="courses/:id/lessons" element={<Lessons />} />
+          <Route path="courses/:id/lessons/new" element={<LessonForm />} />
+          <Route path="courses/:id/lessons/:lessonId/edit" element={<LessonForm />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

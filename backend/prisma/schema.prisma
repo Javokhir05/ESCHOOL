@@ -47,12 +47,13 @@ model User {
 }
 
 model StudentProfile {
-  id          String       @id @default(cuid())
-  userId      String       @unique
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String           @id @default(cuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   grade       Int
   goal        Category? // empty means "not sure yet"
   enrollments Enrollment[]
+  progress    LessonProgress[]
 }
 
 model TeacherProfile {
@@ -105,6 +106,7 @@ model Course {
   teacherId   String
   teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
   enrollments Enrollment[]
+  lessons     Lesson[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -126,4 +128,41 @@ model Enrollment {
   createdAt DateTime         @default(now())
 
   @@unique([studentId, courseId]) // one request per student per course
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  videoUrl  String?
+  position  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  materials Material[]
+  progress  LessonProgress[]
+
+  @@index([courseId, position])
+}
+
+model Material {
+  id        String   @id @default(cuid())
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  title     String
+  url       String
+  createdAt DateTime @default(now())
+}
+
+model LessonProgress {
+  id          String         @id @default(cuid())
+  studentId   String
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt DateTime       @default(now())
+
+  @@unique([studentId, lessonId]) // a lesson can only be completed once per student
 }

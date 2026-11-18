@@ -80,7 +80,8 @@ export default function TeacherCourses() {
 
                       <div className="flex flex-wrap gap-2">
                         <Button as={Link} to={`/teacher/courses/${c.id}/edit`} variant="secondary" size="sm">{t('tc.edit')}</Button>
-                        <Button as={Link} to={`/teacher/courses/${c.id}/students`} variant="secondary" size="sm">{t('tc.students')}</Button>
+                                                <Button as={Link} to={`/teacher/courses/${c.id}/students`} variant="secondary" size="sm">{t('tc.students')}</Button>
+                                                                        <Button as={Link} to={`/teacher/courses/${c.id}/lessons`} variant="secondary" size="sm">{t('ls.title')}</Button>
                         {c.status === 'PUBLISHED' && (
                           <Button as={Link} to={`/courses/${c.slug}`} variant="ghost" size="sm">{t('tc.view')}</Button>
                         )}

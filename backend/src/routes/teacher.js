@@ -124,7 +124,7 @@ router.get('/courses', async (req, res, next) => {
   try {
     const rows = await prisma.course.findMany({
       where: { teacherId: req.teacher.id },
-      include: { enrollments: { select: { status: true } } },
+      include: { enrollments: { select: { status: true } }, _count: { select: { lessons: true } } },
       orderBy: { createdAt: 'desc' },
     });
     res.json({
@@ -138,6 +138,7 @@ router.get('/courses', async (req, res, next) => {
         title: { uz: c.titleUz, en: c.titleEn },
         activeStudents: c.enrollments.filter((e) => e.status === 'ACTIVE').length,
         pendingRequests: c.enrollments.filter((e) => e.status === 'PENDING').length,
+        lessonCount: c._count.lessons,
       })),
     });
   } catch (err) {
@@ -236,6 +237,196 @@ router.get('/courses/:id/students', async (req, res, next) => {
       })),
       pending: rows.length - active.length,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Lessons ----------
+
+// Accepts only full http(s) links. Anything else (javascript:, data:, ...) is refused.
+function parseUrl(value) {
+  try {
+    const u = new URL(String(value ?? '').trim());
+    if (!['http:', 'https:'].includes(u.protocol)) return null;
+    const out = u.toString();
+    return out.length <= 500 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseLesson(b = {}) {
+  const errors = {};
+
+  const title = String(b.title ?? '').trim();
+  if (title.length < 3) errors.title = 'required';
+  else if (title.length > 120) errors.title = 'length';
+
+  const content = String(b.content ?? '').trim();
+  if (!content) errors.content = 'required';
+  else if (content.length > 10000) errors.content = 'length';
+
+  let videoUrl = null;
+  const rawVideo = String(b.videoUrl ?? '').trim();
+  if (rawVideo) {
+    videoUrl = parseUrl(rawVideo);
+    if (!videoUrl) errors.videoUrl = 'url';
+  }
+
+  const materials = [];
+  if (b.materials !== undefined) {
+    if (!Array.isArray(b.materials) || b.materials.length > 10) {
+      errors.materials = 'materials';
+    } else {
+      for (const m of b.materials) {
+        const mTitle = String(m?.title ?? '').trim();
+        const mUrl = parseUrl(m?.url);
+        if (!mTitle || mTitle.length > 100 || !mUrl) {
+          errors.materials = 'materials';
+          break;
+        }
+        materials.push({ title: mTitle, url: mUrl });
+      }
+    }
+  }
+
+  return { errors, data: { title, content, videoUrl }, materials };
+}
+
+// A teacher can only touch lessons of their own courses. Anything else answers "not found".
+async function ownLesson(req, res) {
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: req.params.lessonId },
+    include: { course: { select: { teacherId: true } }, materials: { orderBy: { createdAt: 'asc' } } },
+  });
+  if (!lesson || lesson.course.teacherId !== req.teacher.id) {
+    res.status(404).json({ error: 'NOT_FOUND' });
+    return null;
+  }
+  return lesson;
+}
+
+// GET /api/teacher/courses/:id/lessons
+router.get('/courses/:id/lessons', async (req, res, next) => {
+  try {
+    const c = await ownCourse(req, res);
+    if (!c) return;
+    const rows = await prisma.lesson.findMany({
+      where: { courseId: c.id },
+      include: { _count: { select: { materials: true } } },
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+    });
+    res.json({
+      course: { id: c.id, title: { uz: c.titleUz, en: c.titleEn } },
+      lessons: rows.map((l) => ({
+        id: l.id,
+        title: l.title,
+        hasVideo: !!l.videoUrl,
+        materialCount: l._count.materials,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/teacher/courses/:id/lessons
+router.post('/courses/:id/lessons', async (req, res, next) => {
+  try {
+    const c = await ownCourse(req, res);
+    if (!c) return;
+    const { errors, data, materials } = parseLesson(req.body);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    const last = await prisma.lesson.findFirst({
+      where: { courseId: c.id },
+      orderBy: { position: 'desc' },
+      select: { position: true },
+    });
+    const lesson = await prisma.lesson.create({
+      data: { ...data, courseId: c.id, position: (last?.position ?? 0) + 1, materials: { create: materials } },
+    });
+    res.status(201).json({ lesson: { id: lesson.id } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/teacher/lessons/:lessonId
+router.get('/lessons/:lessonId', async (req, res, next) => {
+  try {
+    const l = await ownLesson(req, res);
+    if (!l) return;
+    res.json({
+      lesson: {
+        id: l.id,
+        courseId: l.courseId,
+        title: l.title,
+        content: l.content,
+        videoUrl: l.videoUrl,
+        materials: l.materials.map((m) => ({ id: m.id, title: m.title, url: m.url })),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/teacher/lessons/:lessonId  (the material list is replaced as a whole)
+router.put('/lessons/:lessonId', async (req, res, next) => {
+  try {
+    const l = await ownLesson(req, res);
+    if (!l) return;
+    const { errors, data, materials } = parseLesson(req.body);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    await prisma.$transaction([
+      prisma.material.deleteMany({ where: { lessonId: l.id } }),
+      prisma.lesson.update({ where: { id: l.id }, data: { ...data, materials: { create: materials } } }),
+    ]);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/teacher/lessons/:lessonId
+router.delete('/lessons/:lessonId', async (req, res, next) => {
+  try {
+    const l = await ownLesson(req, res);
+    if (!l) return;
+    await prisma.lesson.delete({ where: { id: l.id } }); // its materials are deleted with it
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/teacher/lessons/:lessonId/move   body: { direction: 'up' | 'down' }
+router.patch('/lessons/:lessonId/move', async (req, res, next) => {
+  try {
+    const l = await ownLesson(req, res);
+    if (!l) return;
+    const direction = (req.body || {}).direction;
+    if (!['up', 'down'].includes(direction)) return res.status(400).json({ error: 'VALIDATION' });
+
+    const siblings = await prisma.lesson.findMany({
+      where: { courseId: l.courseId },
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true },
+    });
+    const order = siblings.map((s) => s.id);
+    const i = order.indexOf(l.id);
+    const j = direction === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= order.length) return res.json({ ok: true });
+
+    [order[i], order[j]] = [order[j], order[i]];
+    // Renumber everything 1..n, which also repairs any duplicate positions
+    await prisma.$transaction(
+      order.map((id, idx) => prisma.lesson.update({ where: { id }, data: { position: idx + 1 } }))
+    );
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }
