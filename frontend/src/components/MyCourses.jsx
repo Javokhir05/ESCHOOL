@@ -36,7 +36,10 @@ export default function MyCourses() {
         <ul className="space-y-3">
           {items.map((e) => (
             <li key={e.id} className="flex items-center justify-between gap-3">
-              <Link to={`/courses/${e.course.id}`} className="text-sm font-semibold text-navy hover:underline">
+              <Link
+                to={e.status === 'ACTIVE' ? `/student/courses/${e.course.id}` : `/courses/${e.course.id}`}
+                className="text-sm font-semibold text-navy hover:underline"
+              >
                 {e.course.title[lang]}
               </Link>
               <Badge tone={tones[e.status]}>{t(`profile.status.${e.status}`)}</Badge>

@@ -21,6 +21,9 @@ import CourseStudents from './pages/teacher/CourseStudents';
 import LessonsIndex from './pages/teacher/LessonsIndex';
 import Lessons from './pages/teacher/Lessons';
 import LessonForm from './pages/teacher/LessonForm';
+import StudentCourses from './pages/student/Courses';
+import StudentCourseView from './pages/student/CourseView';
+import StudentLesson from './pages/student/Lesson';
 
 export default function App() {
   return (
@@ -42,6 +45,9 @@ export default function App() {
         <Route path="student" element={<DashboardLayout role="student" />}>
           <Route index element={<StudentOverview />} />
           <Route path="profile" element={<StudentProfile />} />
+          <Route path="courses" element={<StudentCourses />} />
+          <Route path="courses/:slug" element={<StudentCourseView />} />
+          <Route path="lessons/:lessonId" element={<StudentLesson />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>
