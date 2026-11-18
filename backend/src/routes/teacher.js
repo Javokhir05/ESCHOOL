@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const express = require('express');
 const prisma = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { uploadOne, isPdf, savePdf, removeFile } = require('../uploads');
 
 const router = express.Router();
 
@@ -365,7 +366,9 @@ router.get('/lessons/:lessonId', async (req, res, next) => {
         title: l.title,
         content: l.content,
         videoUrl: l.videoUrl,
-        materials: l.materials.map((m) => ({ id: m.id, title: m.title, url: m.url })),
+        materials: l.materials.map((m) => ({
+          id: m.id, title: m.title, url: m.url, hasFile: !!m.storedName, size: m.size,
+        })),
       },
     });
   } catch (err) {
@@ -373,18 +376,15 @@ router.get('/lessons/:lessonId', async (req, res, next) => {
   }
 });
 
-// PUT /api/teacher/lessons/:lessonId  (the material list is replaced as a whole)
+// PUT /api/teacher/lessons/:lessonId  (files are managed separately)
 router.put('/lessons/:lessonId', async (req, res, next) => {
   try {
     const l = await ownLesson(req, res);
     if (!l) return;
-    const { errors, data, materials } = parseLesson(req.body);
+    const { errors, data } = parseLesson(req.body);
     if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
 
-    await prisma.$transaction([
-      prisma.material.deleteMany({ where: { lessonId: l.id } }),
-      prisma.lesson.update({ where: { id: l.id }, data: { ...data, materials: { create: materials } } }),
-    ]);
+    await prisma.lesson.update({ where: { id: l.id }, data });
     res.json({ ok: true });
   } catch (err) {
     next(err);
@@ -396,7 +396,9 @@ router.delete('/lessons/:lessonId', async (req, res, next) => {
   try {
     const l = await ownLesson(req, res);
     if (!l) return;
-    await prisma.lesson.delete({ where: { id: l.id } }); // its materials are deleted with it
+    const files = l.materials.map((m) => m.storedName).filter(Boolean);
+    await prisma.lesson.delete({ where: { id: l.id } }); // its material records are deleted with it
+    await Promise.all(files.map(removeFile));
     res.json({ ok: true });
   } catch (err) {
     next(err);
@@ -426,6 +428,44 @@ router.patch('/lessons/:lessonId/move', async (req, res, next) => {
     await prisma.$transaction(
       order.map((id, idx) => prisma.lesson.update({ where: { id }, data: { position: idx + 1 } }))
     );
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/teacher/lessons/:lessonId/materials   (multipart form: title + file)
+router.post('/lessons/:lessonId/materials', uploadOne, async (req, res, next) => {
+  try {
+    const l = await ownLesson(req, res);
+    if (!l) return;
+    if (l.materials.length >= 10) return res.status(400).json({ error: 'TOO_MANY_FILES' });
+
+    const title = String((req.body || {}).title ?? '').trim();
+    if (!title || title.length > 100) return res.status(400).json({ error: 'MATERIAL_NAME' });
+    if (!req.file || !isPdf(req.file.buffer)) return res.status(400).json({ error: 'NOT_PDF' });
+
+    const storedName = await savePdf(req.file.buffer);
+    const material = await prisma.material.create({
+      data: { lessonId: l.id, title, storedName, size: req.file.size },
+    });
+    res.status(201).json({ material: { id: material.id, title: material.title, size: material.size } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/teacher/materials/:id
+router.delete('/materials/:id', async (req, res, next) => {
+  try {
+    const m = await prisma.material.findUnique({
+      where: { id: req.params.id },
+      include: { lesson: { include: { course: { select: { teacherId: true } } } } },
+    });
+    if (!m || m.lesson.course.teacherId !== req.teacher.id) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    await prisma.material.delete({ where: { id: m.id } });
+    if (m.storedName) await removeFile(m.storedName);
     res.json({ ok: true });
   } catch (err) {
     next(err);

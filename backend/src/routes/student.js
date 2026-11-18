@@ -152,7 +152,9 @@ router.get('/lessons/:lessonId', async (req, res, next) => {
         title: lesson.title,
         content: lesson.content,
         videoUrl: lesson.videoUrl,
-        materials: lesson.materials.map((m) => ({ id: m.id, title: m.title, url: m.url })),
+        materials: lesson.materials.map((m) => ({
+        id: m.id, title: m.title, url: m.url, hasFile: !!m.storedName, size: m.size,
+        })),
         completed: !!progress,
         number: i + 1,
         total: siblings.length,

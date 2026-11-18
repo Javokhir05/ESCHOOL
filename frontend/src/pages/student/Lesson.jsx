@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, ExternalLink, Paperclip, Video } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ExternalLink, Video } from 'lucide-react';
 import { Badge, Button, Card } from '../../components/ui';
 import DataState from '../../components/DataState';
 import NotAvailable from '../../components/NotAvailable';
@@ -9,6 +9,7 @@ import { apiErrorText } from '../../auth/errorMessage';
 import { useAuth } from '../../auth/AuthContext';
 import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
+import MaterialLink from '../../components/MaterialLink';
 
 // Only real web links become clickable
 const safeUrl = (u) => (/^https?:\/\//i.test(u) ? u : null);
@@ -81,23 +82,8 @@ function LessonPage({ lessonId }) {
             {data.lesson.materials.length > 0 && (
               <Card title={t('sc.materials')} className="mt-4">
                 <ul className="space-y-2">
-                  {data.lesson.materials.map((m) => (
-                    <li key={m.id}>
-                      {safeUrl(m.url) ? (
-                        <a
-                          href={safeUrl(m.url)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline"
-                        >
-                          <Paperclip size={16} aria-hidden="true" />
-                          {m.title}
-                          <ExternalLink size={14} aria-hidden="true" />
-                        </a>
-                      ) : (
-                        <span className="text-sm text-ink-muted">{m.title}</span>
-                      )}
-                    </li>
+                    {data.lesson.materials.map((m) => (
+                    <li key={m.id}><MaterialLink material={m} /></li>
                   ))}
                 </ul>
               </Card>
