@@ -47,26 +47,28 @@ model User {
 }
 
 model StudentProfile {
-  id          String           @id @default(cuid())
-  userId      String           @unique
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grade       Int
-  goal        Category? // empty means "not sure yet"
-  enrollments Enrollment[]
-  progress    LessonProgress[]
-  submissions Submission[]
-  attempts    Attempt[]
-  achievements Achievement[]
+  id            String           @id @default(cuid())
+  userId        String           @unique
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grade         Int
+  goal          Category? // empty means "not sure yet"
+  enrollments   Enrollment[]
+  progress      LessonProgress[]
+  submissions   Submission[]
+  attempts      Attempt[]
+  achievements  Achievement[]
+  conversations Conversation[]
 }
 
 model TeacherProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject         Category
   experienceYears Int
   bio             String?
   courses         Course[]
+  conversations   Conversation[]
 }
 
 enum CourseLevel {
@@ -297,4 +299,33 @@ model Achievement {
 
   @@index([studentId])
   @@index([status, showPublic])
+}
+
+model Conversation {
+  id            String         @id @default(cuid())
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId     String
+  teacher       TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  lastMessageAt DateTime       @default(now())
+  studentReadAt DateTime       @default(now())
+  teacherReadAt DateTime       @default(now())
+
+  messages Message[]
+
+  @@unique([studentId, teacherId]) // one conversation per student and teacher
+  @@index([studentId, lastMessageAt])
+  @@index([teacherId, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  fromStudent    Boolean
+  text           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }

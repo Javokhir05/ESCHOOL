@@ -23,3 +23,12 @@ export function formatDate(iso, lang) {
 export function toDateInput(iso) {
   return new Date(iso).toISOString().slice(0, 10);
 }
+
+export function formatMessageTime(iso, lang) {
+  const d = new Date(iso);
+  const locale = lang === 'uz' ? 'uz-UZ' : 'en-GB';
+  if (d.toDateString() === new Date().toDateString()) {
+    return d.toLocaleTimeString(locale, { timeStyle: 'short' });
+  }
+  return d.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
+}
