@@ -28,6 +28,8 @@ import TeacherAssignments from './pages/teacher/Assignments';
 import AssignmentForm from './pages/teacher/AssignmentForm';
 import AssignmentSubmissions from './pages/teacher/AssignmentSubmissions';
 import SubmissionReview from './pages/teacher/SubmissionReview';
+import StudentAssignments from './pages/student/Assignments';
+import StudentAssignment from './pages/student/AssignmentDetail';
 
 export default function App() {
   return (
@@ -52,6 +54,8 @@ export default function App() {
           <Route path="courses" element={<StudentCourses />} />
           <Route path="courses/:slug" element={<StudentCourseView />} />
           <Route path="lessons/:lessonId" element={<StudentLesson />} />
+          <Route path="assignments" element={<StudentAssignments />} />
+          <Route path="assignments/:assignmentId" element={<StudentAssignment />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

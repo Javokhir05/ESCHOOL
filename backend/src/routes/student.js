@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { uploadOne, isPdf, savePdf, removeFile } = require('../uploads');
 
 const router = express.Router();
 
@@ -62,21 +63,53 @@ async function loadProgress(studentId) {
   });
 }
 
+// Assignments of the student's open courses, each with the student's own submission status
+async function loadAssignments(studentId) {
+  const rows = await prisma.assignment.findMany({
+    where: { course: openTo(studentId) },
+    include: {
+      course: { select: { slug: true, titleUz: true, titleEn: true } },
+      submissions: { where: { studentId }, select: { status: true, score: true, submittedAt: true } },
+    },
+    orderBy: { dueAt: 'asc' },
+  });
+  const now = new Date();
+  return rows.map((a) => {
+    const sub = a.submissions[0] || null;
+    return {
+      id: a.id,
+      title: a.title,
+      dueAt: a.dueAt,
+      maxScore: a.maxScore,
+      course: { id: a.course.slug, title: { uz: a.course.titleUz, en: a.course.titleEn } },
+      status: sub ? sub.status : 'NONE',
+      score: sub && sub.status === 'GRADED' ? sub.score : null,
+      late: sub ? sub.submittedAt > a.dueAt : false,
+      overdue: !sub && a.dueAt < now,
+    };
+  });
+}
+
+// GET /api/student/overview
 // GET /api/student/overview
 router.get('/overview', async (req, res, next) => {
   try {
     const studentId = req.student.id;
-    const [courses, waiting] = await Promise.all([
+    const [courses, waiting, assignments] = await Promise.all([
       loadProgress(studentId),
       prisma.enrollment.count({ where: { studentId, status: 'PENDING' } }),
+      loadAssignments(studentId),
     ]);
+    const todo = assignments.filter((a) => a.status === 'NONE'); // already sorted by deadline
     res.json({
       stats: {
         activeCourses: courses.length,
         completedLessons: courses.reduce((sum, c) => sum + c.completedLessons, 0),
         waiting,
+        pendingTasks: todo.length,
       },
       courses,
+      deadlines: todo.slice(0, 3),
     });
   } catch (err) {
     next(err);
@@ -188,6 +221,130 @@ router.put('/lessons/:lessonId/progress', async (req, res, next) => {
     }
     res.json({ ok: true });
   } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Assignments ----------
+
+// GET /api/student/assignments
+router.get('/assignments', async (req, res, next) => {
+  try {
+    res.json({ assignments: await loadAssignments(req.student.id) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/student/assignments/:assignmentId
+router.get('/assignments/:assignmentId', async (req, res, next) => {
+  try {
+    const studentId = req.student.id;
+    const a = await prisma.assignment.findFirst({
+      where: { id: req.params.assignmentId, course: openTo(studentId) },
+      include: {
+        course: { select: { slug: true, titleUz: true, titleEn: true } },
+        submissions: { where: { studentId } },
+      },
+    });
+    if (!a) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    const s = a.submissions[0] || null;
+    const graded = !!s && s.status === 'GRADED';
+    res.json({
+      assignment: {
+        id: a.id,
+        title: a.title,
+        instructions: a.instructions,
+        dueAt: a.dueAt,
+        maxScore: a.maxScore,
+        file: a.fileStored ? { name: a.fileName, size: a.fileSize } : null,
+        course: { id: a.course.slug, title: { uz: a.course.titleUz, en: a.course.titleEn } },
+      },
+      submission: s
+        ? {
+            id: s.id,
+            text: s.text,
+            file: s.fileStored ? { name: s.fileName, size: s.fileSize } : null,
+            status: s.status,
+            submittedAt: s.submittedAt,
+            late: s.submittedAt > a.dueAt,
+            // the grade and feedback are shown only after the teacher has graded
+            score: graded ? s.score : null,
+            feedback: graded ? s.feedback : null,
+          }
+        : null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/student/assignments/:assignmentId/submission
+// multipart form: text, optional file (PDF), optional fileName, optional removeFile="true"
+// Works for the first submission and for changes, until the teacher grades it.
+router.put('/assignments/:assignmentId/submission', uploadOne, async (req, res, next) => {
+  let newFile = null; // a PDF saved to disk during this request
+  try {
+    const studentId = req.student.id;
+    const a = await prisma.assignment.findFirst({
+      where: { id: req.params.assignmentId, course: openTo(studentId) },
+    });
+    if (!a) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    const existing = await prisma.submission.findUnique({
+      where: { assignmentId_studentId: { assignmentId: a.id, studentId } },
+    });
+    if (existing && existing.status === 'GRADED') return res.status(409).json({ error: 'ALREADY_GRADED' });
+
+    const b = req.body || {};
+    const text = String(b.text ?? '').trim();
+    if (text.length > 10000) return res.status(400).json({ error: 'VALIDATION', fields: { text: 'length' } });
+
+    if (req.file) {
+      if (!isPdf(req.file.buffer)) return res.status(400).json({ error: 'NOT_PDF' });
+      const label = String(b.fileName ?? '').trim().slice(0, 100) || 'PDF';
+      newFile = { stored: await savePdf(req.file.buffer), name: label, size: req.file.size };
+    }
+
+    // What the submission will contain after this request
+    let file = null;
+    if (newFile) file = newFile;
+    else if (existing && existing.fileStored && b.removeFile !== 'true') {
+      file = { stored: existing.fileStored, name: existing.fileName, size: existing.fileSize };
+    }
+    if (!text && !file) return res.status(400).json({ error: 'EMPTY_SUBMISSION' });
+
+    const data = {
+      text: text || null,
+      fileStored: file ? file.stored : null,
+      fileName: file ? file.name : null,
+      fileSize: file ? file.size : null,
+      submittedAt: new Date(), // a change after the deadline counts as late
+    };
+
+    if (existing) {
+      // "status: SUBMITTED" in the filter protects against a teacher grading at the same moment
+      const result = await prisma.submission.updateMany({
+        where: { id: existing.id, status: 'SUBMITTED' },
+        data,
+      });
+      if (result.count === 0) {
+        if (newFile) await removeFile(newFile.stored);
+        return res.status(409).json({ error: 'ALREADY_GRADED' });
+      }
+    } else {
+      await prisma.submission.create({ data: { ...data, assignmentId: a.id, studentId } });
+    }
+
+    // The old PDF is no longer used, so delete it from the disk
+    if (existing && existing.fileStored && existing.fileStored !== data.fileStored) {
+      await removeFile(existing.fileStored);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    if (newFile) await removeFile(newFile.stored);
+    if (err.code === 'P2002') return res.status(409).json({ error: 'ALREADY_SUBMITTED' });
     next(err);
   }
 });
