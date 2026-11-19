@@ -17,11 +17,12 @@ export default function TeacherOverview() {
 
       <DataState loading={stats.loading} error={stats.error} onRetry={stats.reload}>
         {stats.data && (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
             <StatCard value={stats.data.stats.students} label={t('teacher.totalStudents')} tone="blue" />
             <StatCard value={stats.data.stats.published} label={t('teacher.activeCourses')} tone="teal" />
             <StatCard value={stats.data.stats.drafts} label={t('teacher.drafts')} tone="violet" />
             <StatCard value={stats.data.stats.waiting} label={t('teacher.waiting')} tone="amber" />
+            <StatCard value={stats.data.stats.toReview} label={t('teacher.toReview')} tone="amber" />
           </div>
         )}
       </DataState>

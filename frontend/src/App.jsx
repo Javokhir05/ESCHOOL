@@ -24,6 +24,10 @@ import LessonForm from './pages/teacher/LessonForm';
 import StudentCourses from './pages/student/Courses';
 import StudentCourseView from './pages/student/CourseView';
 import StudentLesson from './pages/student/Lesson';
+import TeacherAssignments from './pages/teacher/Assignments';
+import AssignmentForm from './pages/teacher/AssignmentForm';
+import AssignmentSubmissions from './pages/teacher/AssignmentSubmissions';
+import SubmissionReview from './pages/teacher/SubmissionReview';
 
 export default function App() {
   return (
@@ -62,6 +66,11 @@ export default function App() {
           <Route path="courses/:id/lessons" element={<Lessons />} />
           <Route path="courses/:id/lessons/new" element={<LessonForm />} />
           <Route path="courses/:id/lessons/:lessonId/edit" element={<LessonForm />} />
+          <Route path="assignments" element={<TeacherAssignments />} />
+          <Route path="assignments/new" element={<AssignmentForm />} />
+          <Route path="assignments/:assignmentId/edit" element={<AssignmentForm />} />
+          <Route path="assignments/:assignmentId/submissions" element={<AssignmentSubmissions />} />
+          <Route path="submissions/:submissionId" element={<SubmissionReview />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

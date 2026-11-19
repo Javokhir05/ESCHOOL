@@ -101,10 +101,11 @@ async function ownCourse(req, res) {
 const lower = (v) => v.toLowerCase();
 
 // GET /api/teacher/stats
+// GET /api/teacher/stats
 router.get('/stats', async (req, res, next) => {
   try {
     const teacherId = req.teacher.id;
-    const [activeRows, published, drafts, waiting] = await Promise.all([
+    const [activeRows, published, drafts, waiting, toReview] = await Promise.all([
       prisma.enrollment.findMany({
         where: { status: 'ACTIVE', course: { teacherId } },
         distinct: ['studentId'],
@@ -113,8 +114,9 @@ router.get('/stats', async (req, res, next) => {
       prisma.course.count({ where: { teacherId, status: 'PUBLISHED' } }),
       prisma.course.count({ where: { teacherId, status: 'DRAFT' } }),
       prisma.enrollment.count({ where: { status: 'PENDING', course: { teacherId } } }),
+      prisma.submission.count({ where: { status: 'SUBMITTED', assignment: { course: { teacherId } } } }),
     ]);
-    res.json({ stats: { students: activeRows.length, published, drafts, waiting } });
+    res.json({ stats: { students: activeRows.length, published, drafts, waiting, toReview } });
   } catch (err) {
     next(err);
   }
@@ -466,6 +468,334 @@ router.delete('/materials/:id', async (req, res, next) => {
 
     await prisma.material.delete({ where: { id: m.id } });
     if (m.storedName) await removeFile(m.storedName);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Assignments ----------
+
+function parseAssignment(b = {}) {
+  const errors = {};
+
+  const title = String(b.title ?? '').trim();
+  if (title.length < 3) errors.title = 'required';
+  else if (title.length > 120) errors.title = 'length';
+
+  const instructions = String(b.instructions ?? '').trim();
+  if (!instructions) errors.instructions = 'required';
+  else if (instructions.length > 5000) errors.instructions = 'length';
+
+  const dueAt = new Date(b.dueAt);
+  const year = dueAt.getFullYear();
+  if (!b.dueAt || Number.isNaN(dueAt.getTime()) || year < 2020 || year > 2100) errors.dueAt = 'date';
+
+  const maxScore = Number(b.maxScore);
+  if (b.maxScore === '' || b.maxScore == null || !Number.isInteger(maxScore) || maxScore < 1 || maxScore > 1000) {
+    errors.maxScore = 'maxScore';
+  }
+
+  return { errors, data: { title, instructions, dueAt, maxScore } };
+}
+
+// A teacher can only touch assignments of their own courses. Anything else answers "not found".
+async function ownAssignment(req, res) {
+  const a = await prisma.assignment.findUnique({
+    where: { id: req.params.assignmentId },
+    include: { course: { select: { id: true, teacherId: true, titleUz: true, titleEn: true } } },
+  });
+  if (!a || a.course.teacherId !== req.teacher.id) {
+    res.status(404).json({ error: 'NOT_FOUND' });
+    return null;
+  }
+  return a;
+}
+
+async function ownSubmission(req, res) {
+  const s = await prisma.submission.findUnique({
+    where: { id: req.params.submissionId },
+    include: {
+      assignment: { include: { course: { select: { teacherId: true } } } },
+      student: { include: { user: { select: { fullName: true, email: true } } } },
+    },
+  });
+  if (!s || s.assignment.course.teacherId !== req.teacher.id) {
+    res.status(404).json({ error: 'NOT_FOUND' });
+    return null;
+  }
+  return s;
+}
+
+// GET /api/teacher/assignments
+router.get('/assignments', async (req, res, next) => {
+  try {
+    const teacherId = req.teacher.id;
+    const [rows, counts] = await Promise.all([
+      prisma.assignment.findMany({
+        where: { course: { teacherId } },
+        include: {
+          course: { select: { id: true, titleUz: true, titleEn: true } },
+          submissions: { select: { status: true } },
+        },
+        orderBy: { dueAt: 'desc' },
+      }),
+      prisma.enrollment.groupBy({
+        by: ['courseId'],
+        where: { status: 'ACTIVE', course: { teacherId } },
+        _count: { _all: true },
+      }),
+    ]);
+    const students = new Map(counts.map((c) => [c.courseId, c._count._all]));
+
+    res.json({
+      assignments: rows.map((a) => ({
+        id: a.id,
+        title: a.title,
+        dueAt: a.dueAt,
+        maxScore: a.maxScore,
+        course: { id: a.course.id, title: { uz: a.course.titleUz, en: a.course.titleEn } },
+        studentCount: students.get(a.courseId) || 0,
+        submittedCount: a.submissions.length,
+        toReview: a.submissions.filter((s) => s.status === 'SUBMITTED').length,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/teacher/courses/:id/assignments
+router.post('/courses/:id/assignments', async (req, res, next) => {
+  try {
+    const c = await ownCourse(req, res);
+    if (!c) return;
+    const { errors, data } = parseAssignment(req.body);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    const a = await prisma.assignment.create({ data: { ...data, courseId: c.id } });
+    res.status(201).json({ assignment: { id: a.id } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/teacher/assignments/:assignmentId  (for the edit form)
+router.get('/assignments/:assignmentId', async (req, res, next) => {
+  try {
+    const a = await ownAssignment(req, res);
+    if (!a) return;
+    res.json({
+      assignment: {
+        id: a.id,
+        title: a.title,
+        instructions: a.instructions,
+        dueAt: a.dueAt,
+        maxScore: a.maxScore,
+        file: a.fileStored ? { name: a.fileName, size: a.fileSize } : null,
+        course: { id: a.course.id, title: { uz: a.course.titleUz, en: a.course.titleEn } },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/teacher/assignments/:assignmentId
+router.put('/assignments/:assignmentId', async (req, res, next) => {
+  try {
+    const a = await ownAssignment(req, res);
+    if (!a) return;
+    const { errors, data } = parseAssignment(req.body);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    // The maximum score cannot drop below a score that was already given
+    const tooHigh = await prisma.submission.count({
+      where: { assignmentId: a.id, score: { gt: data.maxScore } },
+    });
+    if (tooHigh > 0) return res.status(400).json({ error: 'VALIDATION', fields: { maxScore: 'scoreLow' } });
+
+    await prisma.assignment.update({ where: { id: a.id }, data });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/teacher/assignments/:assignmentId  (also removes every PDF that belongs to it)
+router.delete('/assignments/:assignmentId', async (req, res, next) => {
+  try {
+    const a = await ownAssignment(req, res);
+    if (!a) return;
+    const submissions = await prisma.submission.findMany({
+      where: { assignmentId: a.id },
+      select: { fileStored: true },
+    });
+    const files = [a.fileStored, ...submissions.map((s) => s.fileStored)].filter(Boolean);
+
+    await prisma.assignment.delete({ where: { id: a.id } });
+    await Promise.all(files.map(removeFile));
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/teacher/assignments/:assignmentId/attachment   (multipart form: title + file; replaces the old one)
+router.post('/assignments/:assignmentId/attachment', uploadOne, async (req, res, next) => {
+  try {
+    const a = await ownAssignment(req, res);
+    if (!a) return;
+
+    const title = String((req.body || {}).title ?? '').trim();
+    if (!title || title.length > 100) return res.status(400).json({ error: 'MATERIAL_NAME' });
+    if (!req.file || !isPdf(req.file.buffer)) return res.status(400).json({ error: 'NOT_PDF' });
+
+    const storedName = await savePdf(req.file.buffer);
+    await prisma.assignment.update({
+      where: { id: a.id },
+      data: { fileStored: storedName, fileName: title, fileSize: req.file.size },
+    });
+    if (a.fileStored) await removeFile(a.fileStored);
+    res.status(201).json({ file: { name: title, size: req.file.size } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/teacher/assignments/:assignmentId/attachment
+router.delete('/assignments/:assignmentId/attachment', async (req, res, next) => {
+  try {
+    const a = await ownAssignment(req, res);
+    if (!a) return;
+    await prisma.assignment.update({
+      where: { id: a.id },
+      data: { fileStored: null, fileName: null, fileSize: null },
+    });
+    if (a.fileStored) await removeFile(a.fileStored);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/teacher/assignments/:assignmentId/submissions
+// One row per approved student, including the ones who have not submitted yet
+router.get('/assignments/:assignmentId/submissions', async (req, res, next) => {
+  try {
+    const a = await ownAssignment(req, res);
+    if (!a) return;
+
+    const [enrollments, submissions] = await Promise.all([
+      prisma.enrollment.findMany({
+        where: { courseId: a.courseId, status: 'ACTIVE' },
+        include: { student: { include: { user: { select: { fullName: true, email: true } } } } },
+      }),
+      prisma.submission.findMany({
+        where: { assignmentId: a.id },
+        include: { student: { include: { user: { select: { fullName: true, email: true } } } } },
+      }),
+    ]);
+
+    const rows = new Map();
+    for (const e of enrollments) {
+      rows.set(e.studentId, {
+        studentId: e.studentId,
+        fullName: e.student.user.fullName,
+        email: e.student.user.email,
+        grade: e.student.grade,
+        submission: null,
+      });
+    }
+    // A student who submitted but is no longer approved still keeps their row, so no work is lost
+    for (const s of submissions) {
+      const row = rows.get(s.studentId) || {
+        studentId: s.studentId,
+        fullName: s.student.user.fullName,
+        email: s.student.user.email,
+        grade: s.student.grade,
+      };
+      row.submission = {
+        id: s.id,
+        status: s.status,
+        submittedAt: s.submittedAt,
+        late: s.submittedAt > a.dueAt,
+        score: s.score,
+        hasFile: !!s.fileStored,
+        hasText: !!s.text,
+      };
+      rows.set(s.studentId, row);
+    }
+
+    const rank = (r) => (!r.submission ? 2 : r.submission.status === 'SUBMITTED' ? 0 : 1);
+    const list = [...rows.values()].sort((x, y) => rank(x) - rank(y) || x.fullName.localeCompare(y.fullName));
+
+    res.json({
+      assignment: {
+        id: a.id,
+        title: a.title,
+        dueAt: a.dueAt,
+        maxScore: a.maxScore,
+        course: { id: a.course.id, title: { uz: a.course.titleUz, en: a.course.titleEn } },
+      },
+      rows: list,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/teacher/submissions/:submissionId
+router.get('/submissions/:submissionId', async (req, res, next) => {
+  try {
+    const s = await ownSubmission(req, res);
+    if (!s) return;
+    res.json({
+      submission: {
+        id: s.id,
+        text: s.text,
+        file: s.fileStored ? { name: s.fileName, size: s.fileSize } : null,
+        status: s.status,
+        score: s.score,
+        feedback: s.feedback,
+        submittedAt: s.submittedAt,
+        gradedAt: s.gradedAt,
+        late: s.submittedAt > s.assignment.dueAt,
+      },
+      assignment: {
+        id: s.assignment.id,
+        title: s.assignment.title,
+        dueAt: s.assignment.dueAt,
+        maxScore: s.assignment.maxScore,
+      },
+      student: { fullName: s.student.user.fullName, email: s.student.user.email, grade: s.student.grade },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/teacher/submissions/:submissionId/grade   body: { score, feedback }
+router.put('/submissions/:submissionId/grade', async (req, res, next) => {
+  try {
+    const s = await ownSubmission(req, res);
+    if (!s) return;
+    const b = req.body || {};
+    const errors = {};
+
+    const raw = b.score;
+    const score = raw === '' || raw == null ? NaN : Number(raw);
+    if (!Number.isInteger(score) || score < 0 || score > s.assignment.maxScore) errors.score = 'score';
+
+    const feedback = String(b.feedback ?? '').trim();
+    if (feedback.length > 2000) errors.feedback = 'length';
+
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    await prisma.submission.update({
+      where: { id: s.id },
+      data: { status: 'GRADED', score, feedback: feedback || null, gradedAt: new Date() },
+    });
     res.json({ ok: true });
   } catch (err) {
     next(err);
