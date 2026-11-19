@@ -124,4 +124,25 @@ router.get('/submissions/:id', requireAuth, async (req, res, next) => {
   }
 });
 
+// GET /api/files/achievements/:id  (a certificate: only the student it belongs to, and admins)
+router.get('/achievements/:id', requireAuth, async (req, res, next) => {
+  try {
+    const me = await loadUser(req, res);
+    if (!me) return;
+
+    const achievement = await prisma.achievement.findUnique({ where: { id: req.params.id } });
+    const target = achievement && achievement.fileStored ? filePath(achievement.fileStored) : null;
+    if (!target) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    const allowed =
+      me.role === 'ADMIN' ||
+      (me.role === 'STUDENT' && !!me.student && achievement.studentId === me.student.id);
+    if (!allowed) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    sendPdf(res, target);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

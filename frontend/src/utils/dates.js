@@ -11,3 +11,15 @@ export function toLocalInput(iso) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+export function formatDate(iso, lang) {
+  return new Date(iso).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-GB', {
+    dateStyle: 'medium',
+    timeZone: 'UTC',
+  });
+}
+
+// "2026-11-30" for a date input
+export function toDateInput(iso) {
+  return new Date(iso).toISOString().slice(0, 10);
+}

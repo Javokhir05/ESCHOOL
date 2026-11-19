@@ -43,6 +43,7 @@ export const roleNav = {
     { to: '/admin/students', label: 'dash.students', icon: GraduationCap },
     { to: '/admin/courses', label: 'dash.courses', icon: Library },
     { to: '/admin/enrollments', label: 'dash.enrollments', icon: ListChecks },
+    { to: '/admin/achievements', label: 'dash.achievements', icon: Award },
     { to: '/admin/reports', label: 'dash.reports', icon: BarChart3 },
     { to: '/admin/settings', label: 'dash.settings', icon: Settings },
   ],

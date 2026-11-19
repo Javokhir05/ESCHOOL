@@ -11,7 +11,7 @@ const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 // The file is kept in memory first, so nothing touches the disk until we have checked it
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_BYTES, files: 1, fields: 5 },
+  limits: { fileSize: MAX_BYTES, files: 1, fields: 12 },
 });
 
 // Middleware: reads one file from the form field "file" and turns upload errors into clean answers

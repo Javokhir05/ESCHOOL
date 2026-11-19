@@ -90,15 +90,16 @@ async function loadAssignments(studentId) {
   });
 }
 
-// GET /api/student/overview
+
 // GET /api/student/overview
 router.get('/overview', async (req, res, next) => {
   try {
     const studentId = req.student.id;
-    const [courses, waiting, assignments] = await Promise.all([
+    const [courses, waiting, assignments, verified] = await Promise.all([
       loadProgress(studentId),
       prisma.enrollment.count({ where: { studentId, status: 'PENDING' } }),
       loadAssignments(studentId),
+      prisma.achievement.count({ where: { studentId, status: 'VERIFIED' } }),
     ]);
     const todo = assignments.filter((a) => a.status === 'NONE'); // already sorted by deadline
     res.json({
@@ -107,6 +108,7 @@ router.get('/overview', async (req, res, next) => {
         completedLessons: courses.reduce((sum, c) => sum + c.completedLessons, 0),
         waiting,
         pendingTasks: todo.length,
+        verifiedAchievements: verified,
       },
       courses,
       deadlines: todo.slice(0, 3),
@@ -572,6 +574,189 @@ router.post('/attempts/:attemptId/submit', async (req, res, next) => {
       data: { finishedAt: new Date(), score, total, answers },
     });
     if (result.count === 0) return res.status(409).json({ error: 'ALREADY_FINISHED' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Achievements ----------
+
+const ACH_TYPES = ['IELTS', 'CEFR', 'OLYMPIAD', 'OTHER'];
+
+function parseAchievement(b = {}) {
+  const errors = {};
+
+  const type = String(b.type ?? '').toUpperCase();
+  if (!ACH_TYPES.includes(type)) errors.type = 'required';
+
+  const title = String(b.title ?? '').trim();
+  if (title.length < 3) errors.title = 'required';
+  else if (title.length > 120) errors.title = 'length';
+
+  const result = String(b.result ?? '').trim();
+  if (!result) errors.result = 'required';
+  else if (result.length > 30) errors.result = 'length';
+
+  let issuedOn = null;
+  const raw = String(b.issuedOn ?? '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    errors.issuedOn = 'date';
+  } else {
+    const d = new Date(`${raw}T00:00:00.000Z`);
+    const latest = Date.now() + 24 * 60 * 60 * 1000; // a day of slack for time zones
+    if (Number.isNaN(d.getTime()) || d.getUTCFullYear() < 2000 || d.getTime() > latest) errors.issuedOn = 'date';
+    else issuedOn = d;
+  }
+
+  // multipart forms send everything as text, so the checkbox arrives as "true" or "false"
+  const showPublic = String(b.showPublic) === 'true';
+
+  return { errors, data: { type, title, result, issuedOn, showPublic } };
+}
+
+const achievementView = (a) => ({
+  id: a.id,
+  type: a.type.toLowerCase(),
+  title: a.title,
+  result: a.result,
+  issuedOn: a.issuedOn,
+  status: a.status,
+  rejectReason: a.status === 'REJECTED' ? a.rejectReason : null,
+  showPublic: a.showPublic,
+  verifiedAt: a.verifiedAt,
+  file: a.fileStored ? { name: a.fileName, size: a.fileSize } : null,
+});
+
+// GET /api/student/achievements
+router.get('/achievements', async (req, res, next) => {
+  try {
+    const rows = await prisma.achievement.findMany({
+      where: { studentId: req.student.id },
+      orderBy: [{ issuedOn: 'desc' }, { createdAt: 'desc' }],
+    });
+    res.json({ achievements: rows.map(achievementView) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/student/achievements   (multipart form: fields + optional PDF "file")
+router.post('/achievements', uploadOne, async (req, res, next) => {
+  let newFile = null; // a PDF saved to disk during this request
+  try {
+    const studentId = req.student.id;
+    if ((await prisma.achievement.count({ where: { studentId } })) >= 20) {
+      return res.status(400).json({ error: 'TOO_MANY_ACHIEVEMENTS' });
+    }
+
+    const { errors, data } = parseAchievement(req.body);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    if (req.file) {
+      if (!isPdf(req.file.buffer)) return res.status(400).json({ error: 'NOT_PDF' });
+      const label = String((req.body || {}).fileName ?? '').trim().slice(0, 100) || 'Certificate';
+      newFile = { stored: await savePdf(req.file.buffer), name: label, size: req.file.size };
+    }
+
+    const a = await prisma.achievement.create({
+      data: {
+        ...data,
+        studentId,
+        fileStored: newFile ? newFile.stored : null,
+        fileName: newFile ? newFile.name : null,
+        fileSize: newFile ? newFile.size : null,
+      },
+    });
+    res.status(201).json({ achievement: { id: a.id } });
+  } catch (err) {
+    if (newFile) await removeFile(newFile.stored);
+    next(err);
+  }
+});
+
+// PUT /api/student/achievements/:id   (multipart: fields, optional file, optional removeFile="true")
+// Allowed until an admin verifies it. Every change sends it back to "self-reported" for a new check.
+router.put('/achievements/:id', uploadOne, async (req, res, next) => {
+  let newFile = null;
+  try {
+    const studentId = req.student.id;
+    const existing = await prisma.achievement.findFirst({ where: { id: req.params.id, studentId } });
+    if (!existing) return res.status(404).json({ error: 'NOT_FOUND' });
+    if (existing.status === 'VERIFIED') return res.status(409).json({ error: 'ALREADY_VERIFIED' });
+
+    const { errors, data } = parseAchievement(req.body);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    const b = req.body || {};
+    if (req.file) {
+      if (!isPdf(req.file.buffer)) return res.status(400).json({ error: 'NOT_PDF' });
+      const label = String(b.fileName ?? '').trim().slice(0, 100) || 'Certificate';
+      newFile = { stored: await savePdf(req.file.buffer), name: label, size: req.file.size };
+    }
+
+    // What the achievement will contain after this request
+    let file = null;
+    if (newFile) file = newFile;
+    else if (existing.fileStored && b.removeFile !== 'true') {
+      file = { stored: existing.fileStored, name: existing.fileName, size: existing.fileSize };
+    }
+
+    // "status: not VERIFIED" in the filter protects against an admin verifying at the same moment
+    const result = await prisma.achievement.updateMany({
+      where: { id: existing.id, status: { not: 'VERIFIED' } },
+      data: {
+        ...data,
+        fileStored: file ? file.stored : null,
+        fileName: file ? file.name : null,
+        fileSize: file ? file.size : null,
+        status: 'PENDING',
+        rejectReason: null,
+        verifiedAt: null,
+      },
+    });
+    if (result.count === 0) {
+      if (newFile) await removeFile(newFile.stored);
+      return res.status(409).json({ error: 'ALREADY_VERIFIED' });
+    }
+
+    // The old PDF is no longer used, so delete it from the disk
+    if (existing.fileStored && existing.fileStored !== (file ? file.stored : null)) {
+      await removeFile(existing.fileStored);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    if (newFile) await removeFile(newFile.stored);
+    next(err);
+  }
+});
+
+// PATCH /api/student/achievements/:id/public   body: { showPublic: true | false }
+// Works at any time, also after verification. Only verified achievements ever reach the public page.
+router.patch('/achievements/:id/public', async (req, res, next) => {
+  try {
+    const showPublic = (req.body || {}).showPublic;
+    if (typeof showPublic !== 'boolean') return res.status(400).json({ error: 'VALIDATION' });
+
+    const result = await prisma.achievement.updateMany({
+      where: { id: req.params.id, studentId: req.student.id },
+      data: { showPublic },
+    });
+    if (result.count === 0) return res.status(404).json({ error: 'NOT_FOUND' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/student/achievements/:id  (also removes the certificate file)
+router.delete('/achievements/:id', async (req, res, next) => {
+  try {
+    const existing = await prisma.achievement.findFirst({ where: { id: req.params.id, studentId: req.student.id } });
+    if (!existing) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    await prisma.achievement.delete({ where: { id: existing.id } });
+    if (existing.fileStored) await removeFile(existing.fileStored);
     res.json({ ok: true });
   } catch (err) {
     next(err);

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ChevronDown, Laptop, Layers, MessageSquare, Quote, UserRound } from 'lucide-react';
 import { Badge, Button, Card } from '../../components/ui';
 import { useI18n } from '../../i18n';
+import PublicAchievements from '../../components/PublicAchievements';
 
 const whyIcons = [Laptop, Layers, MessageSquare];
 
@@ -115,21 +116,10 @@ export default function Home() {
         </Section>
       </div>
 
-      {/* Verified achievements */}
-      <Section title={t('landing.resultsTitle')} note={t('landing.sampleNote')}>
+      {/* Verified achievements: real data, nothing fake */}
+      <Section title={t('landing.resultsTitle')}>
         <p className="max-w-2xl text-ink-muted">{t('landing.resultsText')}</p>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {t('landing.results').map((r) => (
-            <Card key={r.label}>
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-semibold text-navy">{r.label}</span>
-                {r.verified
-                  ? <Badge tone="teal">{t('ds.verified')}</Badge>
-                  : <Badge tone="neutral">{t('ds.selfReported')}</Badge>}
-              </div>
-            </Card>
-          ))}
-        </div>
+        <PublicAchievements />
       </Section>
 
       {/* Testimonials */}

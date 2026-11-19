@@ -9,6 +9,7 @@ const adminRoutes = require('./routes/admin');
 const teacherRoutes = require('./routes/teacher');
 const studentRoutes = require('./routes/student');
 const fileRoutes = require('./routes/files');
+const publicRoutes = require('./routes/public');
 
 if (!process.env.JWT_SECRET) {
   console.error('JWT_SECRET is missing in .env');
@@ -28,6 +29,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/public', publicRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'NOT_FOUND' }));
 

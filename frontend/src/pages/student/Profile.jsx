@@ -4,6 +4,7 @@ import { Badge, Button, Card } from '../../components/ui';
 import { useAuth } from '../../auth/AuthContext';
 import { useI18n } from '../../i18n';
 import MyCourses from '../../components/MyCourses';
+import AchievementsSummary from '../../components/AchievementsSummary';
 
 function initials(name = '') {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
@@ -74,9 +75,7 @@ export default function StudentProfile() {
           </div>
         </Card>
 
-        <Card title={t('profile.achievementsTitle')}>
-          <Empty icon={Award} text={t('profile.noAchievements')} />
-        </Card>
+        <AchievementsSummary />
 
         <Card title={t('profile.progressTitle')}>
           <Empty icon={TrendingUp} text={t('profile.noProgress')} />

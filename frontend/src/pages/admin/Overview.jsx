@@ -22,12 +22,14 @@ export default function AdminOverview() {
                 <StatCard value={data.stats.students} label={t('admin.stats.students')} tone="blue" />
                 <StatCard value={data.stats.teachers} label={t('admin.stats.teachers')} tone="teal" />
                 <StatCard value={data.stats.courses} label={t('admin.stats.courses')} tone="violet" />
+                <StatCard value={data.stats.pendingAchievements} label={t('admin.stats.pendingAchievements')} tone="amber" />
               </div>
 
               <Card className="mt-4">
                 <div className="flex flex-wrap gap-3">
                   <Button as={Link} to="/admin/teachers">{t('admin.reviewTeachers')}</Button>
                   <Button as={Link} to="/admin/enrollments" variant="secondary">{t('admin.reviewEnrollments')}</Button>
+                  <Button as={Link} to="/admin/achievements" variant="secondary">{t('admin.reviewAchievements')}</Button>
                 </div>
               </Card>
             </>

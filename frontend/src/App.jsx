@@ -36,6 +36,9 @@ import TestResults from './pages/teacher/TestResults';
 import StudentTests from './pages/student/Tests';
 import StudentTest from './pages/student/TestDetail';
 import StudentAttempt from './pages/student/Attempt';
+import StudentAchievements from './pages/student/Achievements';
+import AchievementForm from './pages/student/AchievementForm';
+import AdminAchievements from './pages/admin/Achievements';
 
 export default function App() {
   return (
@@ -65,6 +68,9 @@ export default function App() {
           <Route path="tests" element={<StudentTests />} />
           <Route path="tests/:testId" element={<StudentTest />} />
           <Route path="attempts/:attemptId" element={<StudentAttempt />} />
+          <Route path="achievements" element={<StudentAchievements />} />
+          <Route path="achievements/new" element={<AchievementForm />} />
+          <Route path="achievements/:id/edit" element={<AchievementForm />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>
@@ -96,6 +102,7 @@ export default function App() {
           <Route index element={<AdminOverview />} />
           <Route path="teachers" element={<AdminTeachers />} />
           <Route path="enrollments" element={<AdminEnrollments />} />
+          <Route path="achievements" element={<AdminAchievements />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

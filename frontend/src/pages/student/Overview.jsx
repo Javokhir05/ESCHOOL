@@ -22,11 +22,12 @@ export default function StudentOverview() {
       <DataState loading={loading} error={error} onRetry={reload}>
         {data && (
           <>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
               <StatCard value={data.stats.activeCourses} label={t('student.activeCourses')} tone="blue" />
               <StatCard value={data.stats.completedLessons} label={t('student.lessonsDone')} tone="teal" />
               <StatCard value={data.stats.pendingTasks} label={t('student.pendingTasks')} tone="amber" />
               <StatCard value={data.stats.waiting} label={t('student.waiting')} tone="violet" />
+              <StatCard value={data.stats.verifiedAchievements} label={t('student.achievements')} tone="teal" />
             </div>
 
             <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
