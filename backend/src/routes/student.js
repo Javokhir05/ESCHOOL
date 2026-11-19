@@ -349,4 +349,233 @@ router.put('/assignments/:assignmentId/submission', uploadOne, async (req, res, 
   }
 });
 
+// ---------- Tests ----------
+
+const GRACE_MS = 60 * 1000; // a minute of slack for slow connections
+
+const deadlineOf = (test, attempt) =>
+  test.timeLimit ? new Date(attempt.startedAt.getTime() + test.timeLimit * 60 * 1000) : null;
+
+const isExpired = (test, attempt) => {
+  const d = deadlineOf(test, attempt);
+  return !!d && Date.now() > d.getTime() + GRACE_MS;
+};
+
+const percentOf = (score, total) => (total ? Math.round((score / total) * 100) : 0);
+
+// An attempt that ran out of time and was never sent counts as 0
+async function settleExpired(test, attempts, total) {
+  for (const a of attempts) {
+    if (!a.finishedAt && isExpired(test, a)) {
+      await prisma.attempt.updateMany({
+        where: { id: a.id, finishedAt: null },
+        data: { finishedAt: new Date(), score: 0, total },
+      });
+      a.finishedAt = new Date();
+      a.score = 0;
+      a.total = total;
+    }
+  }
+}
+
+const testInclude = (studentId) => ({
+  course: { select: { slug: true, titleUz: true, titleEn: true } },
+  _count: { select: { questions: true } },
+  attempts: { where: { studentId }, orderBy: { startedAt: 'desc' } },
+});
+
+function summarizeTest(t) {
+  const finished = t.attempts.filter((a) => a.finishedAt);
+  const open = t.attempts.find((a) => !a.finishedAt);
+  const best = finished.length ? Math.max(...finished.map((a) => percentOf(a.score, a.total))) : null;
+  return {
+    id: t.id,
+    title: t.title,
+    timeLimit: t.timeLimit,
+    maxAttempts: t.maxAttempts,
+    passPercent: t.passPercent,
+    questionCount: t._count.questions,
+    course: { id: t.course.slug, title: { uz: t.course.titleUz, en: t.course.titleEn } },
+    attemptsUsed: t.attempts.length,
+    inProgressId: open ? open.id : null,
+    bestPercent: best,
+    passed: best !== null && best >= t.passPercent,
+  };
+}
+
+// A test is open to a student only if it is published and its course is open to them
+const openTest = (studentId) => ({ status: 'PUBLISHED', course: openTo(studentId) });
+
+// GET /api/student/tests
+router.get('/tests', async (req, res, next) => {
+  try {
+    const studentId = req.student.id;
+    const tests = await prisma.test.findMany({
+      where: openTest(studentId),
+      include: testInclude(studentId),
+      orderBy: { createdAt: 'desc' },
+    });
+    for (const t of tests) await settleExpired(t, t.attempts, t._count.questions);
+    res.json({ tests: tests.map(summarizeTest) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/student/tests/:testId
+router.get('/tests/:testId', async (req, res, next) => {
+  try {
+    const studentId = req.student.id;
+    const t = await prisma.test.findFirst({
+      where: { id: req.params.testId, ...openTest(studentId) },
+      include: testInclude(studentId),
+    });
+    if (!t) return res.status(404).json({ error: 'NOT_FOUND' });
+    await settleExpired(t, t.attempts, t._count.questions);
+
+    res.json({
+      test: { ...summarizeTest(t), description: t.description, showAnswers: t.showAnswers },
+      attempts: t.attempts
+        .filter((a) => a.finishedAt)
+        .map((a) => {
+          const percent = percentOf(a.score, a.total);
+          return {
+            id: a.id,
+            finishedAt: a.finishedAt,
+            score: a.score,
+            total: a.total,
+            percent,
+            passed: percent >= t.passPercent,
+          };
+        }),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/student/tests/:testId/start  (continues an attempt in progress, or begins a new one)
+router.post('/tests/:testId/start', async (req, res, next) => {
+  try {
+    const studentId = req.student.id;
+    const t = await prisma.test.findFirst({
+      where: { id: req.params.testId, ...openTest(studentId) },
+      include: testInclude(studentId),
+    });
+    if (!t || t._count.questions === 0) return res.status(404).json({ error: 'NOT_FOUND' });
+    await settleExpired(t, t.attempts, t._count.questions);
+
+    const open = t.attempts.find((a) => !a.finishedAt);
+    if (open) return res.json({ attemptId: open.id });
+    if (t.attempts.length >= t.maxAttempts) return res.status(409).json({ error: 'NO_ATTEMPTS_LEFT' });
+
+    const attempt = await prisma.attempt.create({ data: { testId: t.id, studentId } });
+    res.status(201).json({ attemptId: attempt.id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/student/attempts/:attemptId
+// In progress: the questions WITHOUT the correct answers. Finished: the result.
+router.get('/attempts/:attemptId', async (req, res, next) => {
+  try {
+    const studentId = req.student.id;
+    const attempt = await prisma.attempt.findFirst({
+      where: { id: req.params.attemptId, studentId, test: openTest(studentId) },
+      include: { test: { include: { questions: { orderBy: { position: 'asc' } } } } },
+    });
+    if (!attempt) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    const test = attempt.test;
+    const total = test.questions.length;
+    if (!attempt.finishedAt && isExpired(test, attempt)) {
+      await settleExpired(test, [attempt], total);
+    }
+
+    const base = { id: test.id, title: test.title, timeLimit: test.timeLimit, passPercent: test.passPercent };
+
+    if (!attempt.finishedAt) {
+      const deadline = deadlineOf(test, attempt);
+      return res.json({
+        state: 'IN_PROGRESS',
+        test: base,
+        serverNow: new Date().toISOString(),
+        deadline: deadline ? deadline.toISOString() : null,
+        questions: test.questions.map((q) => ({ id: q.id, text: q.text, options: q.options })),
+      });
+    }
+
+    const percent = percentOf(attempt.score, attempt.total);
+    const answers = attempt.answers && typeof attempt.answers === 'object' ? attempt.answers : {};
+    res.json({
+      state: 'FINISHED',
+      test: base,
+      attempt: {
+        score: attempt.score,
+        total: attempt.total,
+        percent,
+        passed: percent >= test.passPercent,
+        finishedAt: attempt.finishedAt,
+      },
+      // the correct answers are revealed only after the attempt is finished, and only if the teacher allows it
+      review: test.showAnswers
+        ? test.questions.map((q) => ({
+            id: q.id,
+            text: q.text,
+            options: q.options,
+            chosen: Number.isInteger(answers[q.id]) ? answers[q.id] : null,
+            correct: q.correct,
+          }))
+        : null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/student/attempts/:attemptId/submit   body: { answers: { questionId: optionIndex } }
+router.post('/attempts/:attemptId/submit', async (req, res, next) => {
+  try {
+    const studentId = req.student.id;
+    const attempt = await prisma.attempt.findFirst({
+      where: { id: req.params.attemptId, studentId, test: openTest(studentId) },
+      include: { test: { include: { questions: true } } },
+    });
+    if (!attempt) return res.status(404).json({ error: 'NOT_FOUND' });
+    if (attempt.finishedAt) return res.status(409).json({ error: 'ALREADY_FINISHED' });
+
+    const test = attempt.test;
+    const total = test.questions.length;
+    if (isExpired(test, attempt)) {
+      await settleExpired(test, [attempt], total);
+      return res.status(409).json({ error: 'TIME_UP' });
+    }
+
+    // Only answers that point at a real option of a real question are counted
+    const given = (req.body || {}).answers;
+    const answers = {};
+    let score = 0;
+    if (given && typeof given === 'object' && !Array.isArray(given)) {
+      for (const q of test.questions) {
+        const v = given[q.id];
+        if (Number.isInteger(v) && v >= 0 && v < q.options.length) {
+          answers[q.id] = v;
+          if (v === q.correct) score += 1;
+        }
+      }
+    }
+
+    // "finishedAt: null" in the filter makes sure the same attempt can never be scored twice
+    const result = await prisma.attempt.updateMany({
+      where: { id: attempt.id, finishedAt: null },
+      data: { finishedAt: new Date(), score, total, answers },
+    });
+    if (result.count === 0) return res.status(409).json({ error: 'ALREADY_FINISHED' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

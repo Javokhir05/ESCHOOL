@@ -55,6 +55,7 @@ model StudentProfile {
   enrollments Enrollment[]
   progress    LessonProgress[]
   submissions Submission[]
+  attempts    Attempt[]
 }
 
 model TeacherProfile {
@@ -109,6 +110,7 @@ model Course {
   enrollments Enrollment[]
   lessons     Lesson[]
   assignments Assignment[]
+  tests       Test[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -212,4 +214,51 @@ model Submission {
   gradedAt     DateTime?
 
   @@unique([assignmentId, studentId]) // one submission per student per assignment
+}
+
+model Test {
+  id          String       @id @default(cuid())
+  courseId    String
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  timeLimit   Int? // minutes; empty means no limit
+  maxAttempts Int          @default(1)
+  passPercent Int          @default(60)
+  showAnswers Boolean      @default(true)
+  status      CourseStatus @default(DRAFT)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  questions Question[]
+  attempts  Attempt[]
+
+  @@index([courseId])
+}
+
+model Question {
+  id       String @id @default(cuid())
+  testId   String
+  test     Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+  position Int
+  text     String
+  options  Json // ["option A", "option B", ...]
+  correct  Int // index of the right option
+
+  @@index([testId, position])
+}
+
+model Attempt {
+  id         String         @id @default(cuid())
+  testId     String
+  test       Test           @relation(fields: [testId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  startedAt  DateTime       @default(now())
+  finishedAt DateTime?
+  score      Int? // number of correct answers
+  total      Int? // number of questions
+  answers    Json? // { questionId: chosen option index }
+
+  @@index([testId, studentId])
 }

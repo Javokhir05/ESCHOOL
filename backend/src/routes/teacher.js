@@ -802,4 +802,281 @@ router.put('/submissions/:submissionId/grade', async (req, res, next) => {
   }
 });
 
+// ---------- Tests ----------
+
+function parseTest(b = {}, withQuestions = true) {
+  const errors = {};
+
+  const title = String(b.title ?? '').trim();
+  if (title.length < 3) errors.title = 'required';
+  else if (title.length > 120) errors.title = 'length';
+
+  const description = String(b.description ?? '').trim();
+  if (description.length > 2000) errors.description = 'length';
+
+  let timeLimit = null;
+  if (b.timeLimit !== '' && b.timeLimit != null) {
+    timeLimit = Number(b.timeLimit);
+    if (!Number.isInteger(timeLimit) || timeLimit < 1 || timeLimit > 300) errors.timeLimit = 'timeLimit';
+  }
+
+  const maxAttempts = Number(b.maxAttempts);
+  if (b.maxAttempts === '' || b.maxAttempts == null || !Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10) {
+    errors.maxAttempts = 'maxAttempts';
+  }
+
+  const passPercent = Number(b.passPercent);
+  if (b.passPercent === '' || b.passPercent == null || !Number.isInteger(passPercent) || passPercent < 0 || passPercent > 100) {
+    errors.passPercent = 'passPercent';
+  }
+
+  const showAnswers = b.showAnswers !== false;
+
+  let questions = null;
+  if (withQuestions) {
+    questions = [];
+    if (!Array.isArray(b.questions) || b.questions.length < 1 || b.questions.length > 50) {
+      errors.questions = 'questions';
+    } else {
+      for (const q of b.questions) {
+        const text = String(q?.text ?? '').trim();
+        const options = Array.isArray(q?.options) ? q.options.map((o) => String(o ?? '').trim()) : [];
+        const correct = Number(q?.correct);
+        const ok =
+          text.length >= 1 && text.length <= 500 &&
+          options.length >= 2 && options.length <= 6 &&
+          options.every((o) => o.length >= 1 && o.length <= 200) &&
+          Number.isInteger(correct) && correct >= 0 && correct < options.length;
+        if (!ok) {
+          errors.questions = 'questions';
+          break;
+        }
+        questions.push({ text, options, correct });
+      }
+    }
+  }
+
+  return {
+    errors,
+    data: { title, description: description || null, timeLimit, maxAttempts, passPercent, showAnswers },
+    questions,
+  };
+}
+
+// A teacher can only touch tests of their own courses. Anything else answers "not found".
+async function ownTest(req, res) {
+  const test = await prisma.test.findUnique({
+    where: { id: req.params.testId },
+    include: { course: { select: { id: true, teacherId: true, titleUz: true, titleEn: true } } },
+  });
+  if (!test || test.course.teacherId !== req.teacher.id) {
+    res.status(404).json({ error: 'NOT_FOUND' });
+    return null;
+  }
+  return test;
+}
+
+// GET /api/teacher/tests
+router.get('/tests', async (req, res, next) => {
+  try {
+    const rows = await prisma.test.findMany({
+      where: { course: { teacherId: req.teacher.id } },
+      include: {
+        course: { select: { id: true, titleUz: true, titleEn: true } },
+        _count: { select: { questions: true } },
+        attempts: { where: { finishedAt: { not: null } }, select: { id: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({
+      tests: rows.map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        timeLimit: t.timeLimit,
+        maxAttempts: t.maxAttempts,
+        passPercent: t.passPercent,
+        course: { id: t.course.id, title: { uz: t.course.titleUz, en: t.course.titleEn } },
+        questionCount: t._count.questions,
+        attemptCount: t.attempts.length,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/teacher/courses/:id/tests  (always created as a draft)
+router.post('/courses/:id/tests', async (req, res, next) => {
+  try {
+    const c = await ownCourse(req, res);
+    if (!c) return;
+    const { errors, data, questions } = parseTest(req.body, true);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    const test = await prisma.test.create({
+      data: {
+        ...data,
+        courseId: c.id,
+        status: 'DRAFT',
+        questions: { create: questions.map((q, i) => ({ ...q, position: i + 1 })) },
+      },
+    });
+    res.status(201).json({ test: { id: test.id } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/teacher/tests/:testId  (everything, including the correct answers, for the edit form)
+router.get('/tests/:testId', async (req, res, next) => {
+  try {
+    const t = await ownTest(req, res);
+    if (!t) return;
+    const [questions, attemptCount] = await Promise.all([
+      prisma.question.findMany({ where: { testId: t.id }, orderBy: { position: 'asc' } }),
+      prisma.attempt.count({ where: { testId: t.id } }),
+    ]);
+    res.json({
+      test: {
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        timeLimit: t.timeLimit,
+        maxAttempts: t.maxAttempts,
+        passPercent: t.passPercent,
+        showAnswers: t.showAnswers,
+        status: t.status,
+        locked: attemptCount > 0,
+        course: { id: t.course.id, title: { uz: t.course.titleUz, en: t.course.titleEn } },
+        questions: questions.map((q) => ({ id: q.id, text: q.text, options: q.options, correct: q.correct })),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/teacher/tests/:testId  (the questions change only while nobody has taken the test)
+router.put('/tests/:testId', async (req, res, next) => {
+  try {
+    const t = await ownTest(req, res);
+    if (!t) return;
+    const locked = (await prisma.attempt.count({ where: { testId: t.id } })) > 0;
+    const { errors, data, questions } = parseTest(req.body, !locked);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    if (locked) {
+      await prisma.test.update({ where: { id: t.id }, data });
+    } else {
+      await prisma.$transaction([
+        prisma.question.deleteMany({ where: { testId: t.id } }),
+        prisma.test.update({
+          where: { id: t.id },
+          data: { ...data, questions: { create: questions.map((q, i) => ({ ...q, position: i + 1 })) } },
+        }),
+      ]);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/teacher/tests/:testId/status   body: { status: 'DRAFT' | 'PUBLISHED' }
+router.patch('/tests/:testId/status', async (req, res, next) => {
+  try {
+    const t = await ownTest(req, res);
+    if (!t) return;
+    const status = (req.body || {}).status;
+    if (!['DRAFT', 'PUBLISHED'].includes(status)) return res.status(400).json({ error: 'VALIDATION' });
+
+    await prisma.test.update({ where: { id: t.id }, data: { status } });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/teacher/tests/:testId  (its questions and every student result are deleted with it)
+router.delete('/tests/:testId', async (req, res, next) => {
+  try {
+    const t = await ownTest(req, res);
+    if (!t) return;
+    await prisma.test.delete({ where: { id: t.id } });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/teacher/tests/:testId/results
+// One row per approved student, including the ones who have not taken the test yet
+router.get('/tests/:testId/results', async (req, res, next) => {
+  try {
+    const t = await ownTest(req, res);
+    if (!t) return;
+
+    const userSelect = { user: { select: { fullName: true, email: true } } };
+    const [enrollments, attempts] = await Promise.all([
+      prisma.enrollment.findMany({
+        where: { courseId: t.courseId, status: 'ACTIVE' },
+        include: { student: { include: userSelect } },
+      }),
+      prisma.attempt.findMany({
+        where: { testId: t.id, finishedAt: { not: null } },
+        include: { student: { include: userSelect } },
+        orderBy: { finishedAt: 'asc' },
+      }),
+    ]);
+
+    const rows = new Map();
+    for (const e of enrollments) {
+      rows.set(e.studentId, {
+        studentId: e.studentId,
+        fullName: e.student.user.fullName,
+        email: e.student.user.email,
+        grade: e.student.grade,
+        attempts: 0,
+        bestPercent: null,
+        lastAt: null,
+      });
+    }
+    // A student who took the test but is no longer approved keeps their row, so no result is lost
+    for (const a of attempts) {
+      const row = rows.get(a.studentId) || {
+        studentId: a.studentId,
+        fullName: a.student.user.fullName,
+        email: a.student.user.email,
+        grade: a.student.grade,
+        attempts: 0,
+        bestPercent: null,
+        lastAt: null,
+      };
+      const percent = a.total ? Math.round((a.score / a.total) * 100) : 0;
+      row.attempts += 1;
+      if (row.bestPercent === null || percent > row.bestPercent) row.bestPercent = percent;
+      row.lastAt = a.finishedAt;
+      rows.set(a.studentId, row);
+    }
+
+    const list = [...rows.values()]
+      .map((r) => ({ ...r, passed: r.bestPercent !== null && r.bestPercent >= t.passPercent }))
+      .sort((x, y) => (x.attempts === 0) - (y.attempts === 0) || x.fullName.localeCompare(y.fullName));
+
+    res.json({
+      test: {
+        id: t.id,
+        title: t.title,
+        passPercent: t.passPercent,
+        maxAttempts: t.maxAttempts,
+        course: { id: t.course.id, title: { uz: t.course.titleUz, en: t.course.titleEn } },
+      },
+      rows: list,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

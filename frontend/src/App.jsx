@@ -30,6 +30,12 @@ import AssignmentSubmissions from './pages/teacher/AssignmentSubmissions';
 import SubmissionReview from './pages/teacher/SubmissionReview';
 import StudentAssignments from './pages/student/Assignments';
 import StudentAssignment from './pages/student/AssignmentDetail';
+import TeacherTests from './pages/teacher/Tests';
+import TestForm from './pages/teacher/TestForm';
+import TestResults from './pages/teacher/TestResults';
+import StudentTests from './pages/student/Tests';
+import StudentTest from './pages/student/TestDetail';
+import StudentAttempt from './pages/student/Attempt';
 
 export default function App() {
   return (
@@ -56,6 +62,9 @@ export default function App() {
           <Route path="lessons/:lessonId" element={<StudentLesson />} />
           <Route path="assignments" element={<StudentAssignments />} />
           <Route path="assignments/:assignmentId" element={<StudentAssignment />} />
+          <Route path="tests" element={<StudentTests />} />
+          <Route path="tests/:testId" element={<StudentTest />} />
+          <Route path="attempts/:attemptId" element={<StudentAttempt />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>
@@ -75,6 +84,10 @@ export default function App() {
           <Route path="assignments/:assignmentId/edit" element={<AssignmentForm />} />
           <Route path="assignments/:assignmentId/submissions" element={<AssignmentSubmissions />} />
           <Route path="submissions/:submissionId" element={<SubmissionReview />} />
+          <Route path="tests" element={<TeacherTests />} />
+          <Route path="tests/new" element={<TestForm />} />
+          <Route path="tests/:testId/edit" element={<TestForm />} />
+          <Route path="tests/:testId/results" element={<TestResults />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>
