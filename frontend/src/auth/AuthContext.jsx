@@ -54,6 +54,12 @@ export function AuthProvider({ children }) {
     setToken(next);
   }, []);
 
+    // Loads the logged-in user again (used after a profile change)
+  const refreshUser = useCallback(async () => {
+    const data = await api('/auth/me', { token: tokenRef.current });
+    setUser(data.user);
+  }, []);
+
   // The server said a token is no longer valid. Sign out only if it was the one we are using now.
   useEffect(() => {
     const onUnauthorized = (e) => {
@@ -64,8 +70,8 @@ export function AuthProvider({ children }) {
   }, [logout]);
 
   const value = useMemo(
-    () => ({ user, token, loading, login, logout, updateToken }),
-    [user, token, loading, login, logout, updateToken]
+    () => ({ user, token, loading, login, logout, updateToken, refreshUser }),
+    [user, token, loading, login, logout, updateToken, refreshUser]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

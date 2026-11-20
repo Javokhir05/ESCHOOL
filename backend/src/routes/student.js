@@ -763,4 +763,43 @@ router.delete('/achievements/:id', async (req, res, next) => {
   }
 });
 
+// ---------- Learning materials ----------
+
+// GET /api/student/materials  (every PDF and link from the student's open courses, grouped by course)
+router.get('/materials', async (req, res, next) => {
+  try {
+    const courses = await prisma.course.findMany({
+      where: openTo(req.student.id),
+      include: {
+        lessons: {
+          orderBy: ORDER,
+          include: { materials: { orderBy: { createdAt: 'asc' } } },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    res.json({
+      courses: courses
+        .map((c) => ({
+          id: c.slug,
+          title: { uz: c.titleUz, en: c.titleEn },
+          materials: c.lessons.flatMap((l) =>
+            l.materials.map((m) => ({
+              id: m.id,
+              title: m.title,
+              url: m.url,
+              hasFile: !!m.storedName,
+              size: m.size,
+              lesson: { id: l.id, title: l.title },
+            }))
+          ),
+        }))
+        .filter((c) => c.materials.length > 0),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

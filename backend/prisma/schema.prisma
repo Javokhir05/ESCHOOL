@@ -68,6 +68,8 @@ model TeacherProfile {
   subject         Category
   experienceYears Int
   bio             String?
+  bioUz           String?
+  bioEn           String?
   courses         Course[]
   conversations   Conversation[]
 }

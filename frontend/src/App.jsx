@@ -42,6 +42,9 @@ import AdminAchievements from './pages/admin/Achievements';
 import Messages from './pages/Messages';
 import Conversation from './pages/Conversation';
 import Settings from './pages/Settings';
+import StudentMaterials from './pages/student/Materials';
+import TeacherStudents from './pages/teacher/Students';
+import TeacherProfile from './pages/teacher/Profile';
 
 export default function App() {
   return (
@@ -77,6 +80,7 @@ export default function App() {
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:id" element={<Conversation />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="materials" element={<StudentMaterials />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>
@@ -103,6 +107,8 @@ export default function App() {
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:id" element={<Conversation />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="students" element={<TeacherStudents />} />
+          <Route path="profile" element={<TeacherProfile />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

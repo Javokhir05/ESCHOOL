@@ -3,6 +3,7 @@ const express = require('express');
 const prisma = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { uploadOne, isPdf, savePdf, removeFile } = require('../uploads');
+const { normalizePhone } = require('../phone');
 
 const router = express.Router();
 
@@ -1074,6 +1075,124 @@ router.get('/tests/:testId/results', async (req, res, next) => {
       },
       rows: list,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Students and profile ----------
+
+// GET /api/teacher/students  (everyone approved in any of this teacher's courses, with progress per course)
+router.get('/students', async (req, res, next) => {
+  try {
+    const teacherId = req.teacher.id;
+    const enrollments = await prisma.enrollment.findMany({
+      where: { status: 'ACTIVE', course: { teacherId }, student: { user: { status: 'ACTIVE' } } },
+      include: {
+        course: { select: { id: true, titleUz: true, titleEn: true, _count: { select: { lessons: true } } } },
+        student: { include: { user: { select: { fullName: true, email: true, phone: true } } } },
+      },
+    });
+
+    const studentIds = [...new Set(enrollments.map((e) => e.studentId))];
+    const done = studentIds.length
+      ? await prisma.lessonProgress.findMany({
+          where: { studentId: { in: studentIds }, lesson: { course: { teacherId } } },
+          select: { studentId: true, lesson: { select: { courseId: true } } },
+        })
+      : [];
+    const doneCount = new Map();
+    for (const d of done) {
+      const key = `${d.studentId}:${d.lesson.courseId}`;
+      doneCount.set(key, (doneCount.get(key) || 0) + 1);
+    }
+
+    const students = new Map();
+    for (const e of enrollments) {
+      let s = students.get(e.studentId);
+      if (!s) {
+        s = {
+          id: e.studentId,
+          fullName: e.student.user.fullName,
+          email: e.student.user.email,
+          phone: e.student.user.phone,
+          grade: e.student.grade,
+          courses: [],
+        };
+        students.set(e.studentId, s);
+      }
+      s.courses.push({
+        id: e.course.id,
+        title: { uz: e.course.titleUz, en: e.course.titleEn },
+        totalLessons: e.course._count.lessons,
+        completedLessons: doneCount.get(`${e.studentId}:${e.course.id}`) || 0,
+      });
+    }
+
+    res.json({ students: [...students.values()].sort((a, b) => a.fullName.localeCompare(b.fullName)) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const SUBJECTS = { ielts: 'IELTS', cefr: 'CEFR', academic: 'ACADEMIC' };
+
+// GET /api/teacher/profile
+router.get('/profile', async (req, res, next) => {
+  try {
+    const me = await prisma.user.findUnique({ where: { id: req.auth.id }, include: { teacher: true } });
+    res.json({
+      profile: {
+        fullName: me.fullName,
+        email: me.email,
+        phone: me.phone,
+        subject: me.teacher.subject.toLowerCase(),
+        experienceYears: me.teacher.experienceYears,
+        bioUz: me.teacher.bioUz || '',
+        bioEn: me.teacher.bioEn || '',
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/teacher/profile  (the email is the login and is not changed here)
+router.put('/profile', async (req, res, next) => {
+  try {
+    const b = req.body || {};
+    const errors = {};
+
+    const fullName = String(b.fullName ?? '').trim();
+    if (fullName.length < 3 || fullName.length > 100) errors.fullName = 'name';
+
+    const phone = normalizePhone(b.phone);
+    if (!phone) errors.phone = 'phone';
+
+    const subject = typeof b.subject === 'string' && Object.hasOwn(SUBJECTS, b.subject) ? SUBJECTS[b.subject] : null;
+    if (!subject) errors.subject = 'required';
+
+    const experienceYears = Number(b.experience);
+    if (b.experience === '' || b.experience == null || !Number.isInteger(experienceYears) || experienceYears < 0 || experienceYears > 60) {
+      errors.experience = 'experience';
+    }
+
+    const bioUz = String(b.bioUz ?? '').trim();
+    const bioEn = String(b.bioEn ?? '').trim();
+    if (bioUz.length > 1000) errors.bioUz = 'length';
+    if (bioEn.length > 1000) errors.bioEn = 'length';
+
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    await prisma.user.update({
+      where: { id: req.auth.id },
+      data: {
+        fullName,
+        phone,
+        teacher: { update: { subject, experienceYears, bioUz: bioUz || null, bioEn: bioEn || null } },
+      },
+    });
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

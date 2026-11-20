@@ -5,6 +5,7 @@ const prisma = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { loginLimiter, loginIpLimiter, registerLimiter, passwordLimiter } = require('../middleware/limits');
 const { validatePassword } = require('../password');
+const { normalizePhone } = require('../phone');
 
 const router = express.Router();
 
@@ -13,13 +14,7 @@ const GOALS = { ielts: 'IELTS', cefr: 'CEFR', academic: 'ACADEMIC' };
 // Compared against when the email does not exist, so a login takes the same time either way
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
 
-// Accepts 901234567 or +998901234567 and returns +998901234567 (or null)
-function normalizePhone(value) {
-  const digits = String(value || '').replace(/\D/g, '');
-  if (digits.length === 9) return `+998${digits}`;
-  if (digits.length === 12 && digits.startsWith('998')) return `+${digits}`;
-  return null;
-}
+
 
 function publicUser(user) {
   const { passwordHash, tokenVersion, ...safe } = user; // never send these out
@@ -64,10 +59,10 @@ router.post('/register', registerLimiter, async (req, res, next) => {
     if (role === 'STUDENT') {
       grade = Number(b.grade);
       if (!Number.isInteger(grade) || grade < 5 || grade > 11) errors.grade = 'required';
-      goal = GOALS[b.goal] || null; // "not sure" and empty both mean null
+      goal = Object.hasOwn(GOALS, b.goal) ? GOALS[b.goal] : null; // "not sure" and empty both mean null
     }
     if (role === 'TEACHER') {
-      subject = GOALS[b.subject] || null;
+      subject = Object.hasOwn(GOALS, b.subject) ? GOALS[b.subject] : null;
       if (!subject) errors.subject = 'required';
       experienceYears = Number(b.experience);
       if (!Number.isInteger(experienceYears) || experienceYears < 0 || experienceYears > 60) {
