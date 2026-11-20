@@ -220,6 +220,7 @@ export default {
       confirm: 'Parollar mos kelmadi.',
       experience: '0 dan 60 gacha butun son kiriting.',
       taken: 'Bu elektron pochta allaqachon roʻyxatdan oʻtgan.',
+      weak: 'Bu parolni topish juda oson. Boshqasini tanlang.',
     },
   },
     profile: {
@@ -610,6 +611,29 @@ export default {
     cantSend: 'Bu suhbatda endi xabar yubora olmaysiz: umumiy tasdiqlangan kurs qolmagan yoki hisoblardan biri faol emas. Oldingi xabarlarni oʻqishingiz mumkin.',
     notFoundTitle: 'Suhbat topilmadi',
     notFoundText: 'Bunday suhbat mavjud emas yoki u boshqa odamga tegishli.',
+  },
+
+    se: {
+    title: 'Sozlamalar',
+    sub: 'Hisobingiz va xavfsizlik.',
+    account: 'Hisob',
+    name: 'Ism-familiya', email: 'Elektron pochta', role: 'Rol',
+    passwordTitle: 'Parolni oʻzgartirish',
+    passwordSub: 'Oʻzgartirgandan keyin bu qurilmada tizimda qolasiz, boshqa barcha qurilmalardan chiqarilasiz.',
+    current: 'Joriy parol',
+    newPassword: 'Yangi parol',
+    confirm: 'Yangi parolni tasdiqlang',
+    save: 'Parolni oʻzgartirish',
+    saving: 'Saqlanmoqda...',
+    done: 'Parolingiz oʻzgartirildi.',
+    errors: {
+      required: 'Bu maydon majburiy.',
+      wrongPassword: 'Joriy parol notoʻgʻri.',
+      same: 'Joriy paroldan farqli parol tanlang.',
+      password: 'Kamida 8 ta belgi kiriting.',
+      weak: 'Bu parolni topish juda oson. Boshqasini tanlang.',
+      confirm: 'Parollar mos kelmadi.',
+    },
   },
 
   footer: { rights: 'Barcha huquqlar himoyalangan.' },

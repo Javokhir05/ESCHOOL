@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 
 const TOKEN_KEY = 'eschool.token';
@@ -21,6 +21,8 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(readToken);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(() => !!readToken()); // true while we check a saved token
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
 
   // On page load: if a token is saved, ask the API who it belongs to
   useEffect(() => {
@@ -46,7 +48,25 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, token, loading, login, logout }), [user, token, loading, login, logout]);
+  // After a password change the server issues a new token for this device
+  const updateToken = useCallback((next) => {
+    saveToken(next);
+    setToken(next);
+  }, []);
+
+  // The server said a token is no longer valid. Sign out only if it was the one we are using now.
+  useEffect(() => {
+    const onUnauthorized = (e) => {
+      if (e.detail === tokenRef.current) logout();
+    };
+    window.addEventListener('eschool:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('eschool:unauthorized', onUnauthorized);
+  }, [logout]);
+
+  const value = useMemo(
+    () => ({ user, token, loading, login, logout, updateToken }),
+    [user, token, loading, login, logout, updateToken]
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

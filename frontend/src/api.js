@@ -9,6 +9,11 @@ export class ApiError extends Error {
   }
 }
 
+// Tells the app that this login token is no longer valid (password changed, account disabled, ...)
+function announceUnauthorized(status, token) {
+  if (status === 401 && token) window.dispatchEvent(new CustomEvent('eschool:unauthorized', { detail: token }));
+}
+
 // JSON requests. Pass `form` (a FormData) instead of `body` to upload a file.
 export async function api(path, { method = 'GET', body, form, token } = {}) {
   let res;
@@ -25,7 +30,10 @@ export async function api(path, { method = 'GET', body, form, token } = {}) {
     throw new ApiError(0, 'NETWORK');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data.error || 'SERVER_ERROR', data.fields);
+  if (!res.ok) {
+    announceUnauthorized(res.status, token);
+    throw new ApiError(res.status, data.error || 'SERVER_ERROR', data.fields);
+  }
   return data;
 }
 
@@ -40,6 +48,7 @@ export async function apiBlob(path, { token } = {}) {
     throw new ApiError(0, 'NETWORK');
   }
   if (!res.ok) {
+    announceUnauthorized(res.status, token);
     const data = await res.json().catch(() => ({}));
     throw new ApiError(res.status, data.error || 'SERVER_ERROR');
   }

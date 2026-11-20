@@ -41,6 +41,7 @@ import AchievementForm from './pages/student/AchievementForm';
 import AdminAchievements from './pages/admin/Achievements';
 import Messages from './pages/Messages';
 import Conversation from './pages/Conversation';
+import Settings from './pages/Settings';
 
 export default function App() {
   return (
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="achievements/:id/edit" element={<AchievementForm />} />
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:id" element={<Conversation />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>
@@ -100,6 +102,7 @@ export default function App() {
           <Route path="tests/:testId/results" element={<TestResults />} />
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:id" element={<Conversation />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>
@@ -109,6 +112,7 @@ export default function App() {
           <Route path="teachers" element={<AdminTeachers />} />
           <Route path="enrollments" element={<AdminEnrollments />} />
           <Route path="achievements" element={<AdminAchievements />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

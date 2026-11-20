@@ -3,10 +3,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { loginLimiter, loginIpLimiter, registerLimiter, passwordLimiter } = require('../middleware/limits');
+const { validatePassword } = require('../password');
 
 const router = express.Router();
 
 const GOALS = { ielts: 'IELTS', cefr: 'CEFR', academic: 'ACADEMIC' };
+
+// Compared against when the email does not exist, so a login takes the same time either way
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
 
 // Accepts 901234567 or +998901234567 and returns +998901234567 (or null)
 function normalizePhone(value) {
@@ -17,12 +22,20 @@ function normalizePhone(value) {
 }
 
 function publicUser(user) {
-  const { passwordHash, ...safe } = user; // never send the hash out
+  const { passwordHash, tokenVersion, ...safe } = user; // never send these out
   return safe;
 }
 
+function signToken(user) {
+  return jwt.sign({ role: user.role, v: user.tokenVersion }, process.env.JWT_SECRET, {
+    subject: user.id,
+    expiresIn: '7d',
+    algorithm: 'HS256',
+  });
+}
+
 // POST /api/auth/register
-router.post('/register', async (req, res, next) => {
+router.post('/register', registerLimiter, async (req, res, next) => {
   try {
     const b = req.body || {};
     const errors = {};
@@ -34,13 +47,14 @@ router.post('/register', async (req, res, next) => {
     if (fullName.length < 3) errors.fullName = 'name';
 
     const email = String(b.email || '').trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(email)) errors.email = 'email';
+    if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) errors.email = 'email';
 
     const phone = normalizePhone(b.phone);
     if (!phone) errors.phone = 'phone';
 
     const password = String(b.password || '');
-    if (password.length < 8 || password.length > 72) errors.password = 'password';
+    const passwordProblem = validatePassword(password, email);
+    if (passwordProblem) errors.password = passwordProblem;
 
     let grade = null;
     let goal = null;
@@ -84,25 +98,21 @@ router.post('/register', async (req, res, next) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res, next) => {
+router.post('/login', loginIpLimiter, loginLimiter, async (req, res, next) => {
   try {
-    const email = String((req.body || {}).email || '').trim().toLowerCase();
-    const password = String((req.body || {}).password || '');
+    const email = String((req.body || {}).email ?? '').trim().toLowerCase();
+    const password = String((req.body || {}).password ?? '');
 
     const user = await prisma.user.findUnique({ where: { email } });
-    // Same answer for "no such email" and "wrong password", so nobody can probe which emails exist
-    const ok = user && (await bcrypt.compare(password, user.passwordHash));
-    if (!ok) return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
+    // The password is always compared, even for an unknown email. Same answer, same time.
+    const ok = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
+    if (!user || !ok) return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
 
+    // These two answers are given only after the password was right
     if (user.status === 'PENDING') return res.status(403).json({ error: 'ACCOUNT_PENDING' });
     if (user.status === 'DISABLED') return res.status(403).json({ error: 'ACCOUNT_DISABLED' });
 
-    const token = jwt.sign({ role: user.role }, process.env.JWT_SECRET, {
-      subject: user.id,
-      expiresIn: '7d',
-    });
-
-    res.json({ token, user: publicUser(user) });
+    res.json({ token: signToken(user), user: publicUser(user) });
   } catch (err) {
     next(err);
   }
@@ -115,8 +125,38 @@ router.get('/me', requireAuth, async (req, res, next) => {
       where: { id: req.auth.id },
       include: { student: true, teacher: true },
     });
-    if (!user || user.status !== 'ACTIVE') return res.status(401).json({ error: 'INVALID_TOKEN' });
+    if (!user) return res.status(401).json({ error: 'INVALID_TOKEN' });
     res.json({ user: publicUser(user) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/change-password   body: { currentPassword, newPassword }
+// Signs out every other device (old tokens stop working) and returns a fresh token for this one.
+router.post('/change-password', requireAuth, passwordLimiter, async (req, res, next) => {
+  try {
+    const b = req.body || {};
+    const currentPassword = String(b.currentPassword ?? '');
+    const newPassword = String(b.newPassword ?? '');
+
+    const user = await prisma.user.findUnique({ where: { id: req.auth.id } });
+    if (!user) return res.status(401).json({ error: 'INVALID_TOKEN' });
+
+    if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      return res.status(400).json({ error: 'VALIDATION', fields: { currentPassword: 'wrongPassword' } });
+    }
+    const problem = validatePassword(newPassword, user.email);
+    if (problem) return res.status(400).json({ error: 'VALIDATION', fields: { newPassword: problem } });
+    if (newPassword === currentPassword) {
+      return res.status(400).json({ error: 'VALIDATION', fields: { newPassword: 'same' } });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await bcrypt.hash(newPassword, 12), tokenVersion: { increment: 1 } },
+    });
+    res.json({ token: signToken(updated) });
   } catch (err) {
     next(err);
   }

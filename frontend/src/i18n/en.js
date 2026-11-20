@@ -323,6 +323,7 @@ export default {
       confirm: 'Passwords do not match.',
       experience: 'Enter a whole number from 0 to 60.',
       taken: 'This email is already registered.',
+      weak: 'This password is too easy to guess. Choose a different one.',
     },
   },
     profile: {
@@ -714,6 +715,29 @@ export default {
     cantSend: 'You can no longer send messages here, because you no longer share an approved course or one of the accounts is inactive. You can still read the earlier messages.',
     notFoundTitle: 'Conversation not found',
     notFoundText: 'This conversation does not exist, or it belongs to someone else.',
+  },
+
+    se: {
+    title: 'Settings',
+    sub: 'Your account and security.',
+    account: 'Account',
+    name: 'Name', email: 'Email', role: 'Role',
+    passwordTitle: 'Change password',
+    passwordSub: 'After you change it, you stay signed in on this device and every other device is signed out.',
+    current: 'Current password',
+    newPassword: 'New password',
+    confirm: 'Confirm new password',
+    save: 'Change password',
+    saving: 'Saving...',
+    done: 'Your password was changed.',
+    errors: {
+      required: 'This field is required.',
+      wrongPassword: 'The current password is not correct.',
+      same: 'Choose a password different from the current one.',
+      password: 'Use at least 8 characters.',
+      weak: 'This password is too easy to guess. Choose a different one.',
+      confirm: 'Passwords do not match.',
+    },
   },
 
   footer: { rights: "All rights reserved." },
