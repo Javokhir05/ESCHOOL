@@ -98,7 +98,7 @@ router.post('/login', loginIpLimiter, loginLimiter, async (req, res, next) => {
     const email = String((req.body || {}).email ?? '').trim().toLowerCase();
     const password = String((req.body || {}).password ?? '');
 
-    const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({ where: { email }, include: { student: true, teacher: true } });
     // The password is always compared, even for an unknown email. Same answer, same time.
     const ok = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
     if (!user || !ok) return res.status(401).json({ error: 'INVALID_CREDENTIALS' });

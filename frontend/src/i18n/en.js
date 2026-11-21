@@ -265,6 +265,8 @@ export default {
     fullName: 'Full name', email: 'Email address',
     phone: 'Phone number', phoneHint: 'For example +998 90 123 45 67',
     password: 'Password', passwordHint: 'At least 8 characters.', confirm: 'Confirm password',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     grade: 'Grade', gradeChoose: 'Choose your grade', gradeFormat: 'Grade {n}',
     goal: 'Learning goal (optional)', goalChoose: 'Choose a goal',
     goals: { ielts: 'IELTS', cefr: 'CEFR', academic: 'School subjects', notSure: 'Not sure yet' },

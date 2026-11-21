@@ -162,6 +162,8 @@ export default {
     fullName: 'Ism-familiya', email: 'Elektron pochta',
     phone: 'Telefon raqami', phoneHint: 'Masalan +998 90 123 45 67',
     password: 'Parol', passwordHint: 'Kamida 8 ta belgi.', confirm: 'Parolni tasdiqlang',
+    showPassword: 'Parolni koʻrsatish',
+    hidePassword: 'Parolni yashirish',
     grade: 'Sinf', gradeChoose: 'Sinfingizni tanlang', gradeFormat: '{n}-sinf',
     goal: 'Oʻqish maqsadi (ixtiyoriy)', goalChoose: 'Maqsadni tanlang',
     goals: { ielts: 'IELTS', cefr: 'CEFR', academic: 'Maktab fanlari', notSure: 'Hali bilmayman' },
