@@ -10,7 +10,7 @@ const empty = { current: '', next: '', confirm: '' };
 
 export default function Settings() {
   const { t } = useI18n();
-  const { user, token, updateToken } = useAuth();
+  const { user, token, updateToken, refreshUse } = useAuth();
   const [v, setV] = useState(empty);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -44,6 +44,7 @@ export default function Settings() {
         body: { currentPassword: v.current, newPassword: v.next },
       });
       updateToken(res.token); // this device gets a fresh token; every other device is signed out
+      try { await refreshUser(res.token); } catch { /* the password is changed; the page updates on the next load */ }
       setV(empty);
       setDone(true);
     } catch (error) {
@@ -61,7 +62,9 @@ export default function Settings() {
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl">{t('se.title')}</h1>
       <p className="mb-6 mt-1 text-ink-muted">{t('se.sub')}</p>
-
+      {user.mustChangePassword && (
+      <p role="alert" className="mb-6 rounded-control bg-amber-soft px-3 py-2 text-sm text-navy">{t('se.mustChange')}</p>
+      )}
       <Card title={t('se.account')}>
         <dl className="grid gap-4 text-sm sm:grid-cols-3">
           <div>

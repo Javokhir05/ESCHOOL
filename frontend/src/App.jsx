@@ -45,6 +45,10 @@ import Settings from './pages/Settings';
 import StudentMaterials from './pages/student/Materials';
 import TeacherStudents from './pages/teacher/Students';
 import TeacherProfile from './pages/teacher/Profile';
+import AdminUsers from './pages/admin/Users';
+import AdminStudents from './pages/admin/Students';
+import AdminCourses from './pages/admin/Courses';
+import AdminReports from './pages/admin/Reports';
 
 export default function App() {
   return (
@@ -119,6 +123,10 @@ export default function App() {
           <Route path="enrollments" element={<AdminEnrollments />} />
           <Route path="achievements" element={<AdminAchievements />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="students" element={<AdminStudents />} />
+          <Route path="courses" element={<AdminCourses />} />
+          <Route path="reports" element={<AdminReports />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuthAllowReset } = require('../middleware/auth');
 const { loginLimiter, loginIpLimiter, registerLimiter, passwordLimiter } = require('../middleware/limits');
 const { validatePassword } = require('../password');
 const { normalizePhone } = require('../phone');
@@ -114,7 +114,7 @@ router.post('/login', loginIpLimiter, loginLimiter, async (req, res, next) => {
 });
 
 // GET /api/auth/me  (needs a valid token)
-router.get('/me', requireAuth, async (req, res, next) => {
+router.get('/me', requireAuthAllowReset, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.auth.id },
@@ -129,7 +129,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
 
 // POST /api/auth/change-password   body: { currentPassword, newPassword }
 // Signs out every other device (old tokens stop working) and returns a fresh token for this one.
-router.post('/change-password', requireAuth, passwordLimiter, async (req, res, next) => {
+router.post('/change-password', requireAuthAllowReset, passwordLimiter, async (req, res, next) => {
   try {
     const b = req.body || {};
     const currentPassword = String(b.currentPassword ?? '');
@@ -149,7 +149,11 @@ router.post('/change-password', requireAuth, passwordLimiter, async (req, res, n
 
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: await bcrypt.hash(newPassword, 12), tokenVersion: { increment: 1 } },
+            data: {
+        passwordHash: await bcrypt.hash(newPassword, 12),
+        tokenVersion: { increment: 1 },
+        mustChangePassword: false,
+      },
     });
     res.json({ token: signToken(updated) });
   } catch (err) {

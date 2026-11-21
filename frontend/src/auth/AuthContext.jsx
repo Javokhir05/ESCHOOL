@@ -54,9 +54,9 @@ export function AuthProvider({ children }) {
     setToken(next);
   }, []);
 
-    // Loads the logged-in user again (used after a profile change)
-  const refreshUser = useCallback(async () => {
-    const data = await api('/auth/me', { token: tokenRef.current });
+    // Loads the logged-in user again (used after a profile or password change)
+  const refreshUser = useCallback(async (nextToken) => {
+    const data = await api('/auth/me', { token: nextToken || tokenRef.current });
     setUser(data.user);
   }, []);
 
