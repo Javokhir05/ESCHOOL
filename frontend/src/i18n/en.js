@@ -308,6 +308,8 @@ export default {
       TOO_MANY_REQUESTS: 'You are doing that too fast. Wait a moment and try again.',
       MESSAGE_INVALID: 'Write a message of up to 2,000 characters.',
       PASSWORD_CHANGE_REQUIRED: 'Please choose a new password in Settings first.',
+      NOT_IMAGE: 'This is not a valid JPG, PNG or WebP photo.',
+      IMAGE_TOO_LARGE: 'The photo is larger than 5 MB.',
     },
     haveAccount: 'Already have an account?', loginLink: 'Log in',
     doneTitle: 'Your form is ready',
@@ -734,6 +736,7 @@ export default {
     saving: 'Saving...',
     done: 'Your password was changed.',
     mustChange: 'An administrator set a temporary password for your account. Choose a new password now to continue.',
+    photo: 'Profile photo',
     errors: {
       required: 'This field is required.',
       wrongPassword: 'The current password is not correct.',
@@ -834,6 +837,13 @@ export default {
     achievementsWaiting: 'Achievements waiting for a check', oldSubmissions: 'Submissions waiting for a grade for more than 7 days',
     allClear: 'Nothing needs attention right now.',
     top: 'Courses with the most students', topNone: 'No approved enrollments yet.', studentsCount: '{n} students',
+  },
+
+    av: {
+    add: 'Add photo', change: 'Change photo', remove: 'Remove photo', uploading: 'Uploading...',
+    confirmRemove: 'Remove your profile photo?',
+    hint: 'JPG, PNG or WebP, up to 5 MB. The photo is cropped to a square. It is visible only to you, the center administrators, and the teachers or students you share an approved course with. It is never shown on the public website.',
+    errors: { type: 'Choose a JPG, PNG or WebP photo.', size: 'The photo must be 5 MB or smaller.' },
   },
 
   footer: { rights: "All rights reserved." },

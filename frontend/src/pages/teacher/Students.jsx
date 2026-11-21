@@ -8,6 +8,7 @@ import { apiErrorText } from '../../auth/errorMessage';
 import { useAuth } from '../../auth/AuthContext';
 import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
+import Avatar from '../../components/Avatar';
 
 const PAGE = 30;
 
@@ -93,11 +94,14 @@ export default function TeacherStudents() {
                   {filtered.slice(0, limit).map((s) => (
                     <li key={s.id} className="py-5 first:pt-0 last:pb-0">
                       <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-navy">{s.fullName}</p>
-                          <p className="break-all text-sm text-ink-muted">
-                            {t('auth.gradeFormat').replace('{n}', s.grade)} · {s.email} · {s.phone}
-                          </p>
+                          <div className="flex min-w-0 items-center gap-3">
+                          <Avatar userId={s.userId} name={s.fullName} hasAvatar={s.hasAvatar} version={s.avatarVersion} size="md" />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-navy">{s.fullName}</p>
+                            <p className="break-all text-sm text-ink-muted">
+                              {t('auth.gradeFormat').replace('{n}', s.grade)} · {s.email} · {s.phone}
+                            </p>
+                          </div>
                         </div>
                         <Button
                           size="sm" variant="secondary" disabled={busy === s.id}

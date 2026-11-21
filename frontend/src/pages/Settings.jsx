@@ -5,6 +5,7 @@ import { api, ApiError } from '../api';
 import { apiErrorText } from '../auth/errorMessage';
 import { useAuth } from '../auth/AuthContext';
 import { useI18n } from '../i18n';
+import AvatarUpload from '../components/AvatarUpload';
 
 const empty = { current: '', next: '', confirm: '' };
 
@@ -81,6 +82,9 @@ export default function Settings() {
           </div>
         </dl>
       </Card>
+      {user.role === 'ADMIN' && (
+        <Card title={t('se.photo')} className="mt-4"><AvatarUpload /></Card>
+      )}
 
       <form onSubmit={onSubmit} noValidate className="mt-4">
         <Card title={t('se.passwordTitle')}>

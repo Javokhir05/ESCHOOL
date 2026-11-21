@@ -5,10 +5,9 @@ import { useAuth } from '../../auth/AuthContext';
 import { useI18n } from '../../i18n';
 import MyCourses from '../../components/MyCourses';
 import AchievementsSummary from '../../components/AchievementsSummary';
+import AvatarUpload from '../../components/AvatarUpload';
 
-function initials(name = '') {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
-}
+
 
 function Empty({ icon: Icon, text, children }) {
   return (
@@ -36,12 +35,7 @@ export default function StudentProfile() {
 
       <Card className="mt-6">
         <div className="flex flex-wrap items-center gap-5">
-          <span
-            className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-brand-soft text-2xl font-bold text-brand"
-            aria-hidden="true"
-          >
-            {initials(user.fullName)}
-          </span>
+          <AvatarUpload />
           <div className="min-w-0">
             <h2 className="text-xl">{user.fullName}</h2>
             <div className="mt-2 flex flex-wrap gap-2">

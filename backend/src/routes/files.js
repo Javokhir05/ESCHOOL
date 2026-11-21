@@ -145,4 +145,64 @@ router.get('/achievements/:id', requireAuth, async (req, res, next) => {
   }
 });
 
+function sendImage(res, target) {
+  res.sendFile(
+    target,
+    {
+      headers: {
+        'Content-Type': 'image/webp',
+        'Content-Disposition': 'inline',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'private, no-store',
+      },
+    },
+    (err) => {
+      if (err && !res.headersSent) res.status(404).json({ error: 'NOT_FOUND' });
+    }
+  );
+}
+
+// GET /api/files/avatars/:userId
+// A photo is visible to: its owner, admins, a teacher whose course the student is approved in, and the
+// student looking at that teacher. Nobody else, and never to the public. Everything else is "not found".
+router.get('/avatars/:userId', requireAuth, async (req, res, next) => {
+  try {
+    const me = await loadUser(req, res);
+    if (!me) return;
+
+    const target = await prisma.user.findUnique({
+      where: { id: req.params.userId },
+      select: {
+        id: true,
+        status: true,
+        avatarStored: true,
+        student: { select: { id: true } },
+        teacher: { select: { id: true } },
+      },
+    });
+    const file = target && target.avatarStored ? filePath(target.avatarStored) : null;
+    if (!file) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    let allowed = me.id === target.id || me.role === 'ADMIN';
+    if (!allowed && target.status === 'ACTIVE') {
+      if (me.role === 'TEACHER' && me.teacher && target.student) {
+        allowed =
+          (await prisma.enrollment.count({
+            where: { studentId: target.student.id, status: 'ACTIVE', course: { teacherId: me.teacher.id } },
+          })) > 0;
+      } else if (me.role === 'STUDENT' && me.student && target.teacher) {
+        allowed =
+          (await prisma.enrollment.count({
+            where: { studentId: me.student.id, status: 'ACTIVE', course: { teacherId: target.teacher.id } },
+          })) > 0;
+      }
+    }
+    if (!allowed) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    sendImage(res, file);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

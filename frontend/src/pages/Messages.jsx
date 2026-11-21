@@ -9,6 +9,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useApi } from '../hooks/useApi';
 import { formatMessageTime } from '../utils/dates';
 import { useI18n } from '../i18n';
+import Avatar from '../components/Avatar';
 
 const SHOWN = 20;
 
@@ -61,8 +62,9 @@ export default function Messages() {
             <ul className="-mx-3 divide-y divide-line">
               {list.data.conversations.map((c) => (
                 <li key={c.id}>
-                  <Link to={`${base}/${c.id}`} className="flex items-start justify-between gap-3 px-3 py-3 hover:bg-surface">
-                    <div className="min-w-0">
+                  <Link to={`${base}/${c.id}`} className="flex items-start gap-3 px-3 py-3 hover:bg-surface">
+                    <Avatar userId={c.other.userId} name={c.other.fullName} hasAvatar={c.other.hasAvatar} version={c.other.avatarVersion} size="md" />
+                    <div className="min-w-0 flex-1">
                       <p className={`truncate text-navy ${c.unread ? 'font-bold' : 'font-semibold'}`}>{c.other.fullName}</p>
                       <p className={`truncate text-sm ${c.unread ? 'font-semibold text-navy' : 'text-ink-muted'}`}>
                         {c.last.mine ? t('ms.you') : ''}{c.last.text}

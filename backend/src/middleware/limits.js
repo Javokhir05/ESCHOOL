@@ -37,4 +37,12 @@ const passwordLimiter = rateLimit({
   keyGenerator: (req) => req.auth.id,
 });
 
-module.exports = { apiLimiter, loginLimiter, loginIpLimiter, registerLimiter, passwordLimiter };
+// Photo uploads: 10 per hour per account (used after requireAuth, so req.auth exists)
+const avatarLimiter = rateLimit({
+  ...base,
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  keyGenerator: (req) => req.auth.id,
+});
+
+module.exports = { apiLimiter, loginLimiter, loginIpLimiter, registerLimiter, passwordLimiter, avatarLimiter };

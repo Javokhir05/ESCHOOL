@@ -7,6 +7,14 @@ const router = express.Router();
 
 const MAX_LENGTH = 2000;
 
+// What the page needs to show a person's name and photo (the stored file name never leaves the server)
+const avatarOf = (u) => ({
+  userId: u.id,
+  fullName: u.fullName,
+  hasAvatar: !!u.avatarStored,
+  avatarVersion: u.avatarUpdatedAt,
+});
+
 // Every route here needs a valid token AND an active student or teacher account.
 router.use(requireAuth, async (req, res, next) => {
   try {
@@ -47,8 +55,8 @@ async function myConversation(req, res) {
   const c = await prisma.conversation.findFirst({
     where: { id: req.params.id, ...mineWhere(req.me) },
     include: {
-      student: { include: { user: { select: { fullName: true } } } },
-      teacher: { include: { user: { select: { fullName: true } } } },
+      student: { include: { user: { select: { id: true, fullName: true, avatarStored: true, avatarUpdatedAt: true } } } },
+      teacher: { include: { user: { select: { id: true, fullName: true, avatarStored: true, avatarUpdatedAt: true } } } },
     },
   });
   if (!c) {
@@ -74,8 +82,8 @@ router.get('/conversations', async (req, res, next) => {
     const rows = await prisma.conversation.findMany({
       where: mineWhere(me),
       include: {
-        student: { include: { user: { select: { fullName: true } } } },
-        teacher: { include: { user: { select: { fullName: true } } } },
+        student: { include: { user: { select: { id: true, fullName: true, avatarStored: true, avatarUpdatedAt: true } } } },
+        teacher: { include: { user: { select: { id: true, fullName: true, avatarStored: true, avatarUpdatedAt: true } } } },
         messages: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
       orderBy: { lastMessageAt: 'desc' },
@@ -90,7 +98,7 @@ router.get('/conversations', async (req, res, next) => {
           const readAt = me.isStudent ? c.studentReadAt : c.teacherReadAt;
           return {
             id: c.id,
-            other: { fullName: me.isStudent ? c.teacher.user.fullName : c.student.user.fullName },
+            other: avatarOf(me.isStudent ? c.teacher.user : c.student.user),
             last: { text: last.text.slice(0, 100), mine: last.fromStudent === me.isStudent, at: last.createdAt },
             unread: last.fromStudent !== me.isStudent && last.createdAt > readAt,
           };
@@ -136,7 +144,7 @@ router.get('/contacts', async (req, res, next) => {
           courses: { some: { enrollments: { some: { studentId: me.profileId, status: 'ACTIVE' } } } },
         },
         include: {
-          user: { select: { fullName: true } },
+          user: { select: { id: true, fullName: true, avatarStored: true, avatarUpdatedAt: true } },
           conversations: { where: { studentId: me.profileId }, select: { id: true } },
         },
         orderBy: { user: { fullName: 'asc' } },
@@ -157,7 +165,7 @@ router.get('/contacts', async (req, res, next) => {
         enrollments: { some: { status: 'ACTIVE', course: { teacherId: me.profileId } } },
       },
       include: {
-        user: { select: { fullName: true } },
+        user: { select: { id: true, fullName: true, avatarStored: true, avatarUpdatedAt: true } },
         conversations: { where: { teacherId: me.profileId }, select: { id: true } },
       },
       orderBy: { user: { fullName: 'asc' } },
@@ -229,7 +237,7 @@ router.get('/conversations/:id', async (req, res, next) => {
     res.json({
       conversation: {
         id: c.id,
-        other: { fullName: me.isStudent ? c.teacher.user.fullName : c.student.user.fullName },
+        other: avatarOf(me.isStudent ? c.teacher.user : c.student.user),
         canSend: await canMessage(c.studentId, c.teacherId),
       },
       messages: messages.map((m) => ({

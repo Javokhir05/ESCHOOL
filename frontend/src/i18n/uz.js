@@ -205,6 +205,8 @@ export default {
       TOO_MANY_REQUESTS: 'Siz buni juda tez qilyapsiz. Biroz kutib, qayta urinib koʻring.',
       MESSAGE_INVALID: 'Xabar yozing (2000 belgigacha).',
       PASSWORD_CHANGE_REQUIRED: 'Avval Sozlamalarda yangi parol tanlang.',
+      NOT_IMAGE: 'Bu toʻgʻri JPG, PNG yoki WebP rasm emas.',
+      IMAGE_TOO_LARGE: 'Rasm 5 MB dan katta.',
     },
     haveAccount: 'Hisobingiz bormi?', loginLink: 'Kirish',
     doneTitle: 'Forma tayyor',
@@ -630,6 +632,7 @@ export default {
     saving: 'Saqlanmoqda...',
     done: 'Parolingiz oʻzgartirildi.',
     mustChange: 'Administrator hisobingiz uchun vaqtinchalik parol oʻrnatgan. Davom etish uchun hozir yangi parol tanlang.',
+    photo: 'Profil rasmi',
     errors: {
       required: 'Bu maydon majburiy.',
       wrongPassword: 'Joriy parol notoʻgʻri.',
@@ -730,6 +733,13 @@ export default {
     achievementsWaiting: 'Tekshirilishi kutilayotgan yutuqlar', oldSubmissions: '7 kundan ortiq baholanmay turgan ishlar',
     allClear: 'Hozir eʼtibor talab qiladigan narsa yoʻq.',
     top: 'Eng koʻp oʻquvchili kurslar', topNone: 'Hali tasdiqlangan yozilishlar yoʻq.', studentsCount: '{n} ta oʻquvchi',
+  },
+
+    av: {
+    add: 'Rasm qoʻshish', change: 'Rasmni almashtirish', remove: 'Rasmni olib tashlash', uploading: 'Yuklanmoqda...',
+    confirmRemove: 'Profil rasmingiz olib tashlansinmi?',
+    hint: 'JPG, PNG yoki WebP, 5 MB gacha. Rasm kvadrat shaklida qirqiladi. Uni faqat siz, markaz administratorlari va siz bilan umumiy tasdiqlangan kursdagi oʻqituvchi yoki oʻquvchilar koʻra oladi. U ommaviy saytda hech qachon koʻrsatilmaydi.',
+    errors: { type: 'JPG, PNG yoki WebP rasm tanlang.', size: 'Rasm 5 MB dan oshmasligi kerak.' },
   },
 
   footer: { rights: 'Barcha huquqlar himoyalangan.' },

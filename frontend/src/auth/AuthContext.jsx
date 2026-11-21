@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
+import { clearAvatarCache } from '../utils/AvatarCache';
 
 const TOKEN_KEY = 'eschool.token';
 const AuthContext = createContext(null);
@@ -43,6 +44,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
+    clearAvatarCache();
     saveToken(null);
     setToken(null);
     setUser(null);

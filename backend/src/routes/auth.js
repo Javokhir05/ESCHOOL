@@ -17,8 +17,8 @@ const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
 
 
 function publicUser(user) {
-  const { passwordHash, tokenVersion, ...safe } = user; // never send these out
-  return safe;
+  const { passwordHash, tokenVersion, avatarStored, ...safe } = user; // never send these out
+  return { ...safe, hasAvatar: !!avatarStored };
 }
 
 function signToken(user) {

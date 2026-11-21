@@ -10,6 +10,7 @@ import { useApi } from '../hooks/useApi';
 import { refreshUnread } from '../hooks/useUnread';
 import { formatMessageTime } from '../utils/dates';
 import { useI18n } from '../i18n';
+import Avatar from '../components/Avatar';
 
 const MAX_LENGTH = 2000;
 
@@ -88,7 +89,13 @@ function Chat({ id }) {
       <DataState loading={loading} error={error} onRetry={reload}>
         {data && (
           <>
-            <h1 className="mt-4 text-2xl">{data.conversation.other.fullName}</h1>
+            <div className="mt-4 flex items-center gap-3">
+              <Avatar
+                userId={data.conversation.other.userId} name={data.conversation.other.fullName}
+                hasAvatar={data.conversation.other.hasAvatar} version={data.conversation.other.avatarVersion} size="md"
+              />
+              <h1 className="text-2xl">{data.conversation.other.fullName}</h1>
+            </div>
 
             {data.messages.length === 0 ? (
               <p className="mt-6 text-sm text-ink-muted">{t('ms.emptyConv')}</p>

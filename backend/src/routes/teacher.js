@@ -1090,7 +1090,9 @@ router.get('/students', async (req, res, next) => {
       where: { status: 'ACTIVE', course: { teacherId }, student: { user: { status: 'ACTIVE' } } },
       include: {
         course: { select: { id: true, titleUz: true, titleEn: true, _count: { select: { lessons: true } } } },
-        student: { include: { user: { select: { fullName: true, email: true, phone: true } } } },
+                student: {
+          include: { user: { select: { id: true, fullName: true, email: true, phone: true, avatarStored: true, avatarUpdatedAt: true } } },
+        },
       },
     });
 
@@ -1113,6 +1115,9 @@ router.get('/students', async (req, res, next) => {
       if (!s) {
         s = {
           id: e.studentId,
+          userId: e.student.user.id,
+          hasAvatar: !!e.student.user.avatarStored,
+          avatarVersion: e.student.user.avatarUpdatedAt,
           fullName: e.student.user.fullName,
           email: e.student.user.email,
           phone: e.student.user.phone,

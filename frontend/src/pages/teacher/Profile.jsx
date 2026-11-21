@@ -7,6 +7,7 @@ import { apiErrorText } from '../../auth/errorMessage';
 import { useAuth } from '../../auth/AuthContext';
 import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
+import AvatarUpload from '../../components/AvatarUpload';
 
 // The server checks the same rules again, so these checks are only for quick feedback.
 function validate(v) {
@@ -131,6 +132,7 @@ export default function TeacherProfile() {
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl">{t('tp.title')}</h1>
       <p className="mb-6 mt-1 text-ink-muted">{t('tp.sub')}</p>
+      <Card className="mb-4"><AvatarUpload /></Card>
       <DataState loading={loading} error={error} onRetry={reload}>
         {data && <Editor profile={data.profile} />}
       </DataState>

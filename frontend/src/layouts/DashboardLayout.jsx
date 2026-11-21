@@ -7,6 +7,7 @@ import { roleNav } from "../config/navigation";
 import { useAuth } from "../auth/AuthContext";
 import { useI18n } from "../i18n";
 import { useUnread } from "../hooks/useUnread";
+import Avatar from '../components/Avatar';
 
 const itemClass = ({ isActive }) =>
   `flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -102,10 +103,9 @@ export default function DashboardLayout({ role }) {
           >
             <Menu size={22} />
           </button>
-          <div className="ml-auto flex items-center gap-4">
-            <span className="hidden text-sm font-semibold text-navy sm:block">
-              {user?.fullName}
-            </span>
+          <div className="ml-auto flex items-center gap-3">
+            <Avatar userId={user?.id} name={user?.fullName} hasAvatar={user?.hasAvatar} version={user?.avatarUpdatedAt} size="sm" />
+            <span className="hidden text-sm font-semibold text-navy sm:block">{user?.fullName}</span>
             <LanguageSwitcher />
           </div>
         </header>
