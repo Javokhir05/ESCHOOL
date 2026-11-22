@@ -28,6 +28,10 @@ router.post('/avatar', avatarLimiter, uploadImageOne, async (req, res, next) => 
       where: { id: req.auth.id },
       data: { avatarStored: newName, avatarUpdatedAt: new Date() },
     });
+
+    // A new photo is never public until the teacher says so again
+    await prisma.teacherProfile.updateMany({ where: { userId: req.auth.id }, data: { avatarPublic: false } });
+
     if (before && before.avatarStored) await removeFile(before.avatarStored); // the old photo is not kept
     res.json({ ok: true });
   } catch (err) {
@@ -42,6 +46,7 @@ router.delete('/avatar', async (req, res, next) => {
     const user = await prisma.user.findUnique({ where: { id: req.auth.id }, select: { avatarStored: true } });
     if (user && user.avatarStored) {
       await prisma.user.update({ where: { id: req.auth.id }, data: { avatarStored: null, avatarUpdatedAt: null } });
+      await prisma.teacherProfile.updateMany({ where: { userId: req.auth.id }, data: { avatarPublic: false } });
       await removeFile(user.avatarStored);
     }
     res.json({ ok: true });

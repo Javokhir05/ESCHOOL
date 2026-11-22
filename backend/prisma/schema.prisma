@@ -76,6 +76,7 @@ model TeacherProfile {
   showPublic      Boolean        @default(false)
   courses         Course[]
   conversations   Conversation[]
+  avatarPublic    Boolean        @default(false)
 }
 
 enum CourseLevel {

@@ -1384,4 +1384,21 @@ router.delete('/sessions/:sessionId', async (req, res, next) => {
   }
 });
 
+// PATCH /api/teacher/avatar-public   body: { public: true | false }
+router.patch('/avatar-public', async (req, res, next) => {
+  try {
+    const flag = (req.body || {}).public;
+    if (typeof flag !== 'boolean') return res.status(400).json({ error: 'VALIDATION' });
+
+    if (flag) {
+      const me = await prisma.user.findUnique({ where: { id: req.auth.id }, select: { avatarStored: true } });
+      if (!me || !me.avatarStored) return res.status(400).json({ error: 'NO_AVATAR' });
+    }
+    await prisma.teacherProfile.update({ where: { id: req.teacher.id }, data: { avatarPublic: flag } });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
