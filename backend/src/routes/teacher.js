@@ -1155,6 +1155,7 @@ router.get('/profile', async (req, res, next) => {
         experienceYears: me.teacher.experienceYears,
         bioUz: me.teacher.bioUz || '',
         bioEn: me.teacher.bioEn || '',
+        showPublic: me.teacher.showPublic,
       },
     });
   } catch (err) {
@@ -1186,6 +1187,7 @@ router.put('/profile', async (req, res, next) => {
     const bioEn = String(b.bioEn ?? '').trim();
     if (bioUz.length > 1000) errors.bioUz = 'length';
     if (bioEn.length > 1000) errors.bioEn = 'length';
+    const showPublic = b.showPublic === true;
 
     if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
 
@@ -1194,7 +1196,7 @@ router.put('/profile', async (req, res, next) => {
       data: {
         fullName,
         phone,
-        teacher: { update: { subject, experienceYears, bioUz: bioUz || null, bioEn: bioEn || null } },
+        teacher: { update: { subject, experienceYears, bioUz: bioUz || null, bioEn: bioEn || null, showPublic } },
       },
     });
     res.json({ ok: true });

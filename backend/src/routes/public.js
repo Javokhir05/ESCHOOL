@@ -34,4 +34,28 @@ router.get('/achievements', async (req, res, next) => {
   }
 });
 
+// GET /api/public/teachers
+// Only active teachers who turned this on themselves. No email, phone, photo or internal ids.
+router.get('/teachers', async (req, res, next) => {
+  try {
+    const rows = await prisma.teacherProfile.findMany({
+      where: { showPublic: true, user: { status: 'ACTIVE' } },
+      include: { user: { select: { fullName: true } } },
+      orderBy: { user: { fullName: 'asc' } },
+      take: 50,
+    });
+    res.json({
+      teachers: rows.map((t) => ({
+        fullName: t.user.fullName,
+        subject: t.subject.toLowerCase(),
+        experienceYears: t.experienceYears,
+        bioUz: t.bioUz || '',
+        bioEn: t.bioEn || '',
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

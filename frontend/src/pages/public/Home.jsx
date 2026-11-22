@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ChevronDown, Laptop, Layers, MessageSquare, Quote, UserRound } from 'lucide-react';
+import { ChevronDown, Laptop, Layers, MessageSquare, Quote } from 'lucide-react';
 import { Badge, Button, Card } from '../../components/ui';
 import { useI18n } from '../../i18n';
 import PublicAchievements from '../../components/PublicAchievements';
+import PublicTeachers from '../../components/PublicTeachers';
 
 const whyIcons = [Laptop, Layers, MessageSquare];
 
@@ -99,22 +100,8 @@ export default function Home() {
         </ol>
       </Section>
 
-      {/* Teachers */}
-      <div className="bg-white">
-        <Section title={t('landing.teachersTitle')} note={t('landing.sampleNote')}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {t('landing.teachers').map((teacher, i) => (
-              <Card key={i}>
-                <span className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft text-brand">
-                  <UserRound size={28} aria-hidden="true" />
-                </span>
-                <h3 className="text-lg">{teacher.name}</h3>
-                <p className="mt-1 text-sm text-ink-muted">{teacher.role}</p>
-              </Card>
-            ))}
-          </div>
-        </Section>
-      </div>
+      {/* Teachers: real, only those who chose to be shown */}
+      <PublicTeachers />
 
       {/* Verified achievements: real data, nothing fake */}
       <Section title={t('landing.resultsTitle')}>

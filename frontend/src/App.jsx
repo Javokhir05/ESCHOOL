@@ -51,6 +51,9 @@ import AdminCourses from './pages/admin/Courses';
 import AdminReports from './pages/admin/Reports';
 import Calendar from './pages/Calendar';
 import SessionForm from './pages/teacher/SessionForm';
+import Teachers from './pages/public/Teachers';
+import About from './pages/public/About';
+import Contact from './pages/public/Contact';
 
 export default function App() {
   return (
@@ -60,9 +63,9 @@ export default function App() {
         <Route path="design-system" element={<DesignSystem />} />
         <Route path="courses" element={<Courses />} />
         <Route path="courses/:id" element={<CourseDetail />} />
-        <Route path="teachers" element={<Placeholder />} />
-        <Route path="about" element={<Placeholder />} />
-        <Route path="contact" element={<Placeholder />} />
+        <Route path="teachers" element={<Teachers />} />
+        <Route path="about" element={<About />} />
+        <Route path="contact" element={<Contact />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
       </Route>

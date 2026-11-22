@@ -73,6 +73,7 @@ model TeacherProfile {
   bio             String?
   bioUz           String?
   bioEn           String?
+  showPublic      Boolean        @default(false)
   courses         Course[]
   conversations   Conversation[]
 }

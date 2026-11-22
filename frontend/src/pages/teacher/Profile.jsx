@@ -38,6 +38,7 @@ function Editor({ profile }) {
     experience: String(profile.experienceYears),
     bioUz: profile.bioUz,
     bioEn: profile.bioEn,
+    showPublic: profile.showPublic,
   });
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -104,6 +105,16 @@ function Editor({ profile }) {
         <div className="space-y-4">
           <Textarea label={t('tp.bioUz')} rows={5} maxLength={1000} value={v.bioUz} onChange={change('bioUz')} error={err('bioUz')} />
           <Textarea label={t('tp.bioEn')} rows={5} maxLength={1000} value={v.bioEn} onChange={change('bioEn')} error={err('bioEn')} />
+          <div>
+            <label className="flex items-start gap-3 text-sm font-semibold text-navy">
+              <input
+                type="checkbox" className="mt-0.5 h-4 w-4 accent-brand" checked={v.showPublic}
+                onChange={(e) => { setV((prev) => ({ ...prev, showPublic: e.target.checked })); setSaved(false); }}
+              />
+              {t('tp.showPublic')}
+            </label>
+            <p className="ml-7 mt-1 text-xs text-ink-muted">{t('tp.showPublicHint')}</p>
+          </div>
         </div>
       </Card>
 

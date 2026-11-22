@@ -5,11 +5,23 @@ import { useAuth } from '../../auth/AuthContext';
 import { useApi } from '../../hooks/useApi';
 import { formatDateTime } from '../../utils/dates';
 import { useI18n } from '../../i18n';
+import { useMemo } from 'react';
+import { dayKeyOf, formatDay, timeOf } from '../../utils/tz';
 
 export default function StudentOverview() {
   const { t, lang } = useI18n();
   const { user } = useAuth();
   const { data, error, loading, reload } = useApi('/student/overview');
+    // The next two weeks. The range is computed once, so the request is not repeated on every render.
+  const range = useMemo(() => {
+    const now = new Date();
+    const end = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    return `from=${encodeURIComponent(now.toISOString())}&to=${encodeURIComponent(end.toISOString())}`;
+  }, []);
+  const calendar = useApi(`/calendar?${range}`);
+  const upcoming = calendar.data
+    ? calendar.data.events.filter((e) => e.kind === 'session' && !e.cancelled).slice(0, 4)
+    : [];
 
   // The first course that still has a lesson to study
   const next = data ? data.courses.find((c) => c.nextLessonId) : null;
@@ -69,6 +81,30 @@ export default function StudentOverview() {
                 </Button>
               </Card>
             </div>
+            
+            <Card title={t('student.upcomingClasses')} className="mt-4">
+              {calendar.error ? (
+                <p role="alert" className="text-sm text-ink-muted">{t('common.loadError')}</p>
+              ) : calendar.loading ? (
+                <p role="status" className="text-sm text-ink-muted">{t('auth.loading')}</p>
+              ) : upcoming.length === 0 ? (
+                <p className="text-sm text-ink-muted">{t('student.noClasses')}</p>
+              ) : (
+                <ul className="space-y-3">
+                  {upcoming.map((e) => (
+                    <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                      <span className="font-semibold text-navy">{e.title || e.course.title[lang]}</span>
+                      <span className="text-ink-muted">
+                        {formatDay(dayKeyOf(e.start), lang, { weekday: 'short', day: true, month: 'short' })} · {timeOf(e.start)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Button as={Link} to="/student/calendar" variant="ghost" size="sm" className="-ml-3 mt-4">
+                {t('student.openCalendar')}
+              </Button>
+            </Card>
 
             {data.courses.length > 0 && (
               <Card className="mt-4">
