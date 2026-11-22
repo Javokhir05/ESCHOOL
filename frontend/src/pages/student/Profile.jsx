@@ -6,6 +6,7 @@ import { useI18n } from '../../i18n';
 import MyCourses from '../../components/MyCourses';
 import AchievementsSummary from '../../components/AchievementsSummary';
 import AvatarUpload from '../../components/AvatarUpload';
+import { formatMonthYear } from '../../utils/dates';
 
 
 
@@ -24,10 +25,7 @@ export default function StudentProfile() {
   const { t, lang } = useI18n();
   const student = user.student;
   const goalKey = student?.goal ? student.goal.toLowerCase() : 'notSure';
-  const since = new Date(user.createdAt).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-GB', {
-    year: 'numeric',
-    month: 'long',
-  });
+  const since = formatMonthYear(user.createdAt, lang);
 
   return (
     <div className="mx-auto max-w-5xl">

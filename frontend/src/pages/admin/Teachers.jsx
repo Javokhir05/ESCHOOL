@@ -6,6 +6,7 @@ import { apiErrorText } from '../../auth/errorMessage';
 import { useAuth } from '../../auth/AuthContext';
 import { useApi } from '../../hooks/useApi';
 import { useI18n } from '../../i18n';
+import { formatDate } from '../../utils/dates';
 
 const tones = { ACTIVE: 'teal', PENDING: 'amber', DISABLED: 'neutral' };
 
@@ -36,7 +37,7 @@ export default function AdminTeachers() {
     }
   };
 
-  const date = (v) => new Date(v).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-GB');
+  const date = (v) => formatDate(v, lang);
 
   return (
     <div className="mx-auto max-w-5xl">

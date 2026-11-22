@@ -1,5 +1,7 @@
 // Uzbekistan has a single time zone, UTC+5, all year round (no daylight saving time).
 // Every time on the calendar is shown in this zone, whatever the computer's own clock says.
+import { formatDateParts } from './names';
+
 export const TZ = 'Asia/Tashkent';
 const OFFSET = '+05:00';
 
@@ -22,8 +24,10 @@ export function weekStartOf(dayKey) {
 }
 
 export function formatDay(dayKey, lang, options) {
-  return new Date(`${dayKey}T12:00:00Z`).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'en-GB', {
-    timeZone: 'UTC',
-    ...options,
-  });
+  const d = new Date(`${dayKey}T12:00:00Z`);
+  return formatDateParts(
+    { weekday: d.getUTCDay(), day: d.getUTCDate(), month: d.getUTCMonth(), year: d.getUTCFullYear() },
+    lang,
+    options
+  );
 }
