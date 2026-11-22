@@ -120,6 +120,7 @@ model Course {
   lessons     Lesson[]
   assignments Assignment[]
   tests       Test[]
+  sessions    ClassSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -334,4 +335,27 @@ model Message {
   createdAt      DateTime     @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+enum SessionMode {
+  ONLINE
+  OFFLINE
+}
+
+model ClassSession {
+  id        String      @id @default(cuid())
+  courseId  String
+  course    Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String? // optional; the course name is used when empty
+  startsAt  DateTime
+  endsAt    DateTime
+  mode      SessionMode
+  location  String? // room or address, for classes in the center
+  link      String? // meeting link, for online classes
+  cancelled Boolean     @default(false)
+  seriesId  String? // classes created together by "repeat weekly" share this
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([courseId, startsAt])
 }

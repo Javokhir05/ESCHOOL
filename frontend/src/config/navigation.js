@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, BookOpen, FileText, ClipboardList, GraduationCap, MessageSquare, UserRound,
-  Award, Settings, PlusCircle, Layers, Users, UserCheck, Library, ListChecks, BarChart3,
+  Award, Settings, PlusCircle, Layers, Users, UserCheck, Library, ListChecks, BarChart3, CalendarDays
 } from 'lucide-react';
 
 // `label` is a translation key. Each role gets its own sidebar.
@@ -15,6 +15,7 @@ export const publicNav = [
 export const roleNav = {
   student: [
     { to: '/student', label: 'dash.overview', icon: LayoutDashboard, end: true },
+    { to: '/student/calendar', label: 'dash.calendar', icon: CalendarDays },
     { to: '/student/courses', label: 'dash.myCourses', icon: BookOpen },
     { to: '/student/materials', label: 'dash.materials', icon: FileText },
     { to: '/student/assignments', label: 'dash.assignments', icon: ClipboardList },
@@ -26,6 +27,7 @@ export const roleNav = {
   ],
   teacher: [
     { to: '/teacher', label: 'dash.overview', icon: LayoutDashboard, end: true },
+    { to: '/teacher/calendar', label: 'dash.calendar', icon: CalendarDays },
     { to: '/teacher/courses', label: 'dash.myCourses', icon: BookOpen, end: true },
     { to: '/teacher/courses/new', label: 'dash.createCourse', icon: PlusCircle },
     { to: '/teacher/lessons', label: 'dash.lessons', icon: Layers },

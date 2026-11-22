@@ -14,6 +14,7 @@ const fileRoutes = require('./routes/files');
 const publicRoutes = require('./routes/public');
 const messageRoutes = require('./routes/messages');
 const accountRoutes = require('./routes/account');
+const calendarRoutes = require('./routes/calendar');
 
 // Refuse to start with unsafe settings
 if ((process.env.JWT_SECRET || '').length < 32) {
@@ -47,6 +48,8 @@ app.use('/api/files', fileRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/account', accountRoutes);
+app.use('/api/calendar', calendarRoutes);
+
 
 app.use((req, res) => res.status(404).json({ error: 'NOT_FOUND' }));
 

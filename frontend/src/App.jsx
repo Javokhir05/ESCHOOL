@@ -49,6 +49,8 @@ import AdminUsers from './pages/admin/Users';
 import AdminStudents from './pages/admin/Students';
 import AdminCourses from './pages/admin/Courses';
 import AdminReports from './pages/admin/Reports';
+import Calendar from './pages/Calendar';
+import SessionForm from './pages/teacher/SessionForm';
 
 export default function App() {
   return (
@@ -85,6 +87,7 @@ export default function App() {
           <Route path="messages/:id" element={<Conversation />} />
           <Route path="settings" element={<Settings />} />
           <Route path="materials" element={<StudentMaterials />} />
+          <Route path="calendar" element={<Calendar />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>
@@ -113,6 +116,9 @@ export default function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="students" element={<TeacherStudents />} />
           <Route path="profile" element={<TeacherProfile />} />
+          <Route path="calendar" element={<Calendar />} />
+          <Route path="calendar/new" element={<SessionForm />} />
+          <Route path="calendar/:sessionId/edit" element={<SessionForm />} />
           <Route path="*" element={<Placeholder />} />
         </Route>
       </Route>

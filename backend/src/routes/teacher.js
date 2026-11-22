@@ -1203,4 +1203,183 @@ router.put('/profile', async (req, res, next) => {
   }
 });
 
+// ---------- Class sessions (the calendar) ----------
+
+const SESSION_OFFSET = '+05:00'; // Uzbekistan: one time zone, UTC+5 all year round
+const HOUR_MS = 60 * 60 * 1000;
+const WEEK_MS = 7 * 24 * HOUR_MS;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// Checks the class form. Dates and times are the ones typed in Tashkent time.
+function parseSession(b = {}, isNew) {
+  const errors = {};
+  const date = String(b.date ?? '').trim();
+  const start = String(b.start ?? '').trim();
+  const end = String(b.end ?? '').trim();
+
+  let startsAt = null;
+  let endsAt = null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) errors.date = 'date';
+  if (!TIME_RE.test(start)) errors.start = 'time';
+  if (!TIME_RE.test(end)) errors.end = 'time';
+
+  if (!errors.date && !errors.start && !errors.end) {
+    startsAt = new Date(`${date}T${start}:00${SESSION_OFFSET}`);
+    endsAt = new Date(`${date}T${end}:00${SESSION_OFFSET}`);
+    // "2026-02-31" must be refused, not turned into a date in March
+    const realDate =
+      !Number.isNaN(startsAt.getTime()) &&
+      new Date(startsAt.getTime() + 5 * HOUR_MS).toISOString().slice(0, 10) === date;
+    if (!realDate) {
+      errors.date = 'date';
+    } else if (endsAt <= startsAt || endsAt - startsAt > 12 * HOUR_MS) {
+      errors.end = 'endTime';
+    } else {
+      const earliest = isNew ? Date.now() - 24 * HOUR_MS : Date.parse('2020-01-01T00:00:00Z');
+      if (startsAt.getTime() < earliest || startsAt.getTime() > Date.now() + 730 * 24 * HOUR_MS) {
+        errors.date = 'dateRange';
+      }
+    }
+  }
+
+  const mode = b.mode === 'online' ? 'ONLINE' : b.mode === 'offline' ? 'OFFLINE' : null;
+  if (!mode) errors.mode = 'required';
+
+  let link = null;
+  let location = null;
+  if (mode === 'ONLINE') {
+    link = parseUrl(b.link);
+    if (!link) errors.link = 'url';
+  } else if (mode === 'OFFLINE') {
+    location = String(b.location ?? '').trim();
+    if (!location) errors.location = 'required';
+    else if (location.length > 150) errors.location = 'length';
+  }
+
+  const title = String(b.title ?? '').trim();
+  if (title.length > 100) errors.title = 'length';
+
+  let weeks = 0;
+  if (isNew) {
+    weeks = b.repeatWeeks === '' || b.repeatWeeks == null ? 0 : Number(b.repeatWeeks);
+    if (!Number.isInteger(weeks) || weeks < 0 || weeks > 25) errors.repeatWeeks = 'repeat';
+  }
+
+  return { errors, data: { startsAt, endsAt, mode, link, location, title: title || null }, weeks };
+}
+
+// A teacher can only touch classes of their own courses. Anything else answers "not found".
+async function ownSession(req, res) {
+  const s = await prisma.classSession.findUnique({
+    where: { id: req.params.sessionId },
+    include: { course: { select: { id: true, teacherId: true, titleUz: true, titleEn: true } } },
+  });
+  if (!s || s.course.teacherId !== req.teacher.id) {
+    res.status(404).json({ error: 'NOT_FOUND' });
+    return null;
+  }
+  return s;
+}
+
+// POST /api/teacher/courses/:id/sessions  (one class, or a weekly series)
+router.post('/courses/:id/sessions', async (req, res, next) => {
+  try {
+    const c = await ownCourse(req, res);
+    if (!c) return;
+    const { errors, data, weeks } = parseSession(req.body, true);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    const existing = await prisma.classSession.count({ where: { courseId: c.id } });
+    if (existing + weeks + 1 > 500) return res.status(400).json({ error: 'TOO_MANY_SESSIONS' });
+
+    const seriesId = weeks > 0 ? crypto.randomUUID() : null;
+    const rows = Array.from({ length: weeks + 1 }, (_, i) => ({
+      courseId: c.id,
+      title: data.title,
+      mode: data.mode,
+      link: data.link,
+      location: data.location,
+      startsAt: new Date(data.startsAt.getTime() + i * WEEK_MS),
+      endsAt: new Date(data.endsAt.getTime() + i * WEEK_MS),
+      seriesId,
+    }));
+    await prisma.classSession.createMany({ data: rows });
+    res.status(201).json({ created: rows.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/teacher/sessions/:sessionId  (for the edit form)
+router.get('/sessions/:sessionId', async (req, res, next) => {
+  try {
+    const s = await ownSession(req, res);
+    if (!s) return;
+    res.json({
+      session: {
+        id: s.id,
+        title: s.title || '',
+        startsAt: s.startsAt,
+        endsAt: s.endsAt,
+        mode: s.mode.toLowerCase(),
+        link: s.link || '',
+        location: s.location || '',
+        cancelled: s.cancelled,
+        inSeries: !!s.seriesId,
+        course: { id: s.course.id, title: { uz: s.course.titleUz, en: s.course.titleEn } },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/teacher/sessions/:sessionId  (changes this one class only)
+router.put('/sessions/:sessionId', async (req, res, next) => {
+  try {
+    const s = await ownSession(req, res);
+    if (!s) return;
+    const { errors, data } = parseSession(req.body, false);
+    if (Object.keys(errors).length) return res.status(400).json({ error: 'VALIDATION', fields: errors });
+
+    await prisma.classSession.update({ where: { id: s.id }, data });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/teacher/sessions/:sessionId/cancel   body: { cancelled: true | false }
+router.patch('/sessions/:sessionId/cancel', async (req, res, next) => {
+  try {
+    const s = await ownSession(req, res);
+    if (!s) return;
+    const cancelled = (req.body || {}).cancelled;
+    if (typeof cancelled !== 'boolean') return res.status(400).json({ error: 'VALIDATION' });
+
+    await prisma.classSession.update({ where: { id: s.id }, data: { cancelled } });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/teacher/sessions/:sessionId[?scope=following]  (following = this class and every later one in its series)
+router.delete('/sessions/:sessionId', async (req, res, next) => {
+  try {
+    const s = await ownSession(req, res);
+    if (!s) return;
+    if (req.query.scope === 'following' && s.seriesId) {
+      await prisma.classSession.deleteMany({
+        where: { courseId: s.courseId, seriesId: s.seriesId, startsAt: { gte: s.startsAt } },
+      });
+    } else {
+      await prisma.classSession.delete({ where: { id: s.id } });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
