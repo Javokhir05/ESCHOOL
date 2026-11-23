@@ -802,5 +802,31 @@ export default {
     },
   },
 
+  pt: {
+    title: "Oʻqituvchilarimiz",
+    sub: "ESCHOOL da dars beradigan insonlar bilan tanishing.",
+    none: "Oʻqituvchilarimiz tez orada shu yerda tanishtiriladi.",
+    experience: "{n} yillik tajriba",
+    seeAll: "Barcha oʻqituvchilar",
+    explore: "Kurslarni koʻrish",
+  },
+  ab: {
+    title: "Biz haqimizda",
+    empty: "Markaz haqidagi maʼlumot tez orada qoʻshiladi.",
+    explore: "Kurslarni koʻrish",
+  },
+  ct: {
+    title: "Aloqa",
+    sub: "Markaz bilan bogʻlaning.",
+    empty: "Aloqa maʼlumotlari tez orada qoʻshiladi.",
+    phone: "Telefon",
+    email: "Elektron pochta",
+    address: "Manzil",
+    hours: "Ish vaqti",
+    map: "Xaritada ochish",
+    telegram: "Telegram",
+    instagram: "Instagram",
+  },
+
   footer: { rights: 'Barcha huquqlar himoyalangan.' },
 };
