@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ChevronDown, Laptop, Layers, MessageSquare, Quote } from 'lucide-react';
+import { ChevronDown, Laptop, Layers, MessageSquare } from 'lucide-react';
 import { Badge, Button, Card } from '../../components/ui';
 import { useI18n } from '../../i18n';
 import PublicAchievements from '../../components/PublicAchievements';
@@ -109,20 +109,7 @@ export default function Home() {
         <PublicAchievements />
       </Section>
 
-      {/* Testimonials */}
-      <div className="bg-white">
-        <Section title={t('landing.testimonialsTitle')} note={t('landing.sampleNote')}>
-          <div className="grid gap-4 md:grid-cols-2">
-            {t('landing.testimonials').map((item, i) => (
-              <Card key={i}>
-                <Quote size={22} className="text-brand" aria-hidden="true" />
-                <p className="mt-3 text-navy">{item.quote}</p>
-                <p className="mt-4 text-sm font-semibold text-ink-muted">{item.name}</p>
-              </Card>
-            ))}
-          </div>
-        </Section>
-      </div>
+      
 
       {/* FAQ */}
       <Section title={t('landing.faqTitle')}>

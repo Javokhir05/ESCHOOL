@@ -6,6 +6,8 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import { Button } from '../components/ui';
 import { publicNav } from '../config/navigation';
 import { useI18n } from '../i18n';
+import { useEffect } from 'react';
+import {useLocation } from 'react-router-dom';
 
 const linkClass = ({ isActive }) =>
   `rounded-control px-3 py-2 text-sm font-medium transition-colors ${
@@ -15,6 +17,17 @@ const linkClass = ({ isActive }) =>
 export default function PublicLayout() {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+
+    const { pathname } = useLocation();
+
+  // The menu closes on every navigation, and with the Escape key
+  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
   return (
     <div className="flex min-h-screen flex-col">

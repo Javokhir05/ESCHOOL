@@ -8,6 +8,8 @@ import { useAuth } from "../auth/AuthContext";
 import { useI18n } from "../i18n";
 import { useUnread } from "../hooks/useUnread";
 import Avatar from '../components/Avatar';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const itemClass = ({ isActive }) =>
   `flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -22,6 +24,29 @@ export default function DashboardLayout({ role }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+
+  const { pathname } = useLocation();
+
+  useEffect(() => { setOpen(false); }, [pathname]);
+
+  // While the mobile sidebar is open: Escape closes it, the page behind does not scroll,
+  // and it closes by itself if the window grows to the desktop layout
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    const onChange = (e) => { if (e.matches) setOpen(false); };
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    desktop.addEventListener('change', onChange);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener('keydown', onKey);
+      desktop.removeEventListener('change', onChange);
+    };
+  }, [open]);
+
   const items = roleNav[role];
   const unread = useUnread(role !== "admin");
 
@@ -80,7 +105,7 @@ export default function DashboardLayout({ role }) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[250px_1fr]">
       <aside className="hidden lg:block">
-        <div className="sticky top-0 h-screen">{sidebar}</div>
+        <div className="sticky top-0 h-dvh">{sidebar}</div>
       </aside>
 
       {open && (

@@ -50,7 +50,7 @@ export default function Courses() {
     <div className="mx-auto max-w-6xl px-4 py-12">
       <h1 className="text-3xl sm:text-4xl">{t('catalog.title')}</h1>
       <p className="mt-2 text-ink-muted">{t('catalog.sub')}</p>
-      <p className="mt-1 text-sm text-ink-muted">{t('catalog.sampleNote')}</p>
+      
 
       <div className="mt-8 space-y-4">
         <Input
@@ -88,8 +88,8 @@ export default function Courses() {
           ) : (
             <div className="mt-4 rounded-card border border-dashed border-line bg-white px-6 py-12 text-center">
               <SearchX size={32} className="mx-auto text-ink-muted" aria-hidden="true" />
-              <h2 className="mt-3 text-lg">{t('catalog.emptyTitle')}</h2>
-              <p className="mt-1 text-ink-muted">{t('catalog.emptyText')}</p>
+              <h2 className="mt-3 text-lg">{courses.length === 0 ? t('catalog.noneYetTitle') : t('catalog.emptyTitle')}</h2>
+              <p className="mt-1 text-ink-muted">{courses.length === 0 ? t('catalog.noneYetText') : t('catalog.emptyText')}</p>
               {hasFilters && (
                 <Button variant="secondary" className="mt-5" onClick={() => setF(emptyFilters)}>
                   {t('catalog.clear')}

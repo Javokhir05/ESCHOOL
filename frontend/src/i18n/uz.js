@@ -79,7 +79,7 @@ export default {
     why: [
       { title: 'Onlayn yoki sinfxonada', text: 'Darslarda markazimizda yoki uyingizdan qatnashing. Materiallar va natijalaringiz bir joyda saqlanadi.' },
       { title: 'Aniq yoʻl, daraja ketma-ketligida', text: 'Kurslar CEFR darajalari (A1 dan C2 gacha) boʻyicha tuzilgan, keyingi qadam doim aniq.' },
-      { title: 'Fikr-mulohaza beradigan oʻqituvchilar', text: 'Yozish va gapirish topshiriqlarini faqat dastur emas, oʻqituvchi ham tekshiradi.' },
+      { title: 'Fikr-mulohaza beradigan oʻqituvchilar', text: 'Topshiriqlaringizni oʻqituvchi tekshiradi va ball hamda yozma izoh beradi.' },
     ],
     stepsTitle: 'Oʻqish qanday kechadi',
     steps: [
@@ -134,6 +134,8 @@ export default {
     loading: 'Kurslar yuklanmoqda...',
     loadError: 'Kurslarni yuklab boʻlmadi.',
     retry: 'Qayta urinish',
+    noneYetTitle: 'Kurslar tez orada qoʻshiladi',
+    noneYetText: 'Markaz kurslarini tayyorlamoqda. Iltimos, birozdan keyin qayta kiring.',
   },
     detail: {
     back: 'Barcha kurslar',

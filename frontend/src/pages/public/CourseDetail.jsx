@@ -108,7 +108,7 @@ export default function CourseDetail() {
             </div>
             <EnrollButton courseId={course.id} />
           </Card>
-          <p className="mt-3 text-xs text-ink-muted">{t('catalog.sampleNote')}</p>
+          
         </aside>
       </div>
     </div>

@@ -142,7 +142,7 @@ export default function Calendar() {
                 <Card className="mb-4"><p className="text-sm text-ink-muted">{t('cal.emptyWeek')}</p></Card>
               )}
 
-              <div className="grid gap-3 xl:grid-cols-7">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {days.map((d) => {
                   const events = byDay.get(d);
                   const isToday = d === today;

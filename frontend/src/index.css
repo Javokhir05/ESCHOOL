@@ -11,3 +11,13 @@
     * { animation: none !important; transition: none !important; }
   }
 }
+
+/* iPhones zoom into form fields whose text is smaller than 16px, so phones get 16px.
+   !important is needed because the component classes (text-sm) would otherwise win. */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
